@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>fov-calibration-tool</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(ModulesPath)\dotnet-common\src\Common.Hosting\Common.Hosting.csproj" />
+    <ProjectReference Include="$(ModulesPath)\dotnet-common\src\Common\Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GregsStack.InputSimulatorStandard" Version="1.3.3" />
+    <PackageReference Include="Haukcode.HighResolutionTimer" Version="1.1.0" />
+    <PackageReference Include="MouseKeyHook" Version="5.7.1" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageReference Include="Vortice.DirectInput" Version="3.3.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="ToolBootstrap.*.cs">
+      <DependentUpon>ToolBootstrap.cs</DependentUpon>
+    </Compile>
+    <None Update="config.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

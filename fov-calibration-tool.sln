@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FovCalibrationTool", "src\FovCalibrationTool\FovCalibrationTool.csproj", "{33D64402-6620-45F0-A468-11230BB39D8D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{0F337971-5DC2-4713-9F3A-674BF246F931}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "modules\dotnet-common\src\Common\Common.csproj", "{87164E9D-963A-41E7-BFA1-4E486917B6F6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common.Hosting", "modules\dotnet-common\src\Common.Hosting\Common.Hosting.csproj", "{2D27651D-4D09-4AD4-B4B6-465A8168D67C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{33D64402-6620-45F0-A468-11230BB39D8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33D64402-6620-45F0-A468-11230BB39D8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33D64402-6620-45F0-A468-11230BB39D8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33D64402-6620-45F0-A468-11230BB39D8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{87164E9D-963A-41E7-BFA1-4E486917B6F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87164E9D-963A-41E7-BFA1-4E486917B6F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87164E9D-963A-41E7-BFA1-4E486917B6F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87164E9D-963A-41E7-BFA1-4E486917B6F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2D27651D-4D09-4AD4-B4B6-465A8168D67C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2D27651D-4D09-4AD4-B4B6-465A8168D67C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2D27651D-4D09-4AD4-B4B6-465A8168D67C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2D27651D-4D09-4AD4-B4B6-465A8168D67C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{87164E9D-963A-41E7-BFA1-4E486917B6F6} = {0F337971-5DC2-4713-9F3A-674BF246F931}
+		{2D27651D-4D09-4AD4-B4B6-465A8168D67C} = {0F337971-5DC2-4713-9F3A-674BF246F931}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C150F27D-A085-4AD4-9249-380CE78DA5E3}
+	EndGlobalSection
+EndGlobal
