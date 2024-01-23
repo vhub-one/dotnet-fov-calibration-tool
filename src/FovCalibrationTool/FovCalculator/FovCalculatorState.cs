@@ -1,7 +1,8 @@
-﻿namespace FovCalibrationTool.FovCalculator
+﻿
+namespace FovCalibrationTool.FovCalculator
 {
     public record FovCalculatorState(
-        bool Enabled,
+        bool Tracking,
         FovCalculatorMode Mode,
         int PointsPer360Deg,
         int PointsPerCustomDeg

@@ -3,6 +3,20 @@ namespace FovCalibrationTool.FovCalculator
 {
     public static class FovCalculatorUtils
     {
+        public static int GetPoints(FovCalculatorState state)
+        {
+            if (state.Mode == FovCalculatorMode.Capture360)
+            {
+                return Math.Abs(state.PointsPer360Deg);
+            }
+            if (state.Mode == FovCalculatorMode.CaptureCustom)
+            {
+                return Math.Abs(state.PointsPerCustomDeg);
+            }
+
+            return 0;
+        }
+
         public static FovStatistics CalculateStatistics(FovCalculatorState state)
         {
             var pointsPer360Deg = Math.Abs(state.PointsPer360Deg);

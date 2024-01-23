@@ -8,7 +8,7 @@ namespace FovCalibrationTool.FovCalculator
         {
             var state = new FovCalculatorState(
                 false,
-                FovCalculatorMode.Capture360,
+                FovCalculatorMode.Disabled,
                 0,
                 0
             );
@@ -26,7 +26,7 @@ namespace FovCalibrationTool.FovCalculator
             }
 
             var state = new FovCalculatorState(
-                statePrevious.Enabled,
+                statePrevious.Tracking,
                 mode,
                 statePrevious.PointsPer360Deg,
                 statePrevious.PointsPerCustomDeg
@@ -35,23 +35,24 @@ namespace FovCalibrationTool.FovCalculator
             UpdateState(state);
         }
 
-        public void Enable(bool enabled)
+        public void Track(bool tracking)
         {
             var statePrevious = State;
 
-            if (statePrevious.Enabled == enabled)
+            if (statePrevious.Tracking == tracking || 
+                statePrevious.Mode == FovCalculatorMode.Disabled)
             {
                 return;
             }
 
             var state = default(FovCalculatorState);
 
-            if (enabled)
+            if (tracking)
             {
                 if (statePrevious.Mode == FovCalculatorMode.Capture360)
                 {
                     state = new FovCalculatorState(
-                        enabled,
+                        tracking,
                         statePrevious.Mode,
                         0,
                         statePrevious.PointsPerCustomDeg
@@ -60,7 +61,7 @@ namespace FovCalibrationTool.FovCalculator
                 if (statePrevious.Mode == FovCalculatorMode.CaptureCustom)
                 {
                     state = new FovCalculatorState(
-                        enabled,
+                        tracking,
                         statePrevious.Mode,
                         statePrevious.PointsPer360Deg,
                         0
@@ -70,7 +71,7 @@ namespace FovCalibrationTool.FovCalculator
             else
             {
                 state = new FovCalculatorState(
-                    enabled,
+                    tracking,
                     statePrevious.Mode,
                     statePrevious.PointsPer360Deg,
                     statePrevious.PointsPerCustomDeg
@@ -87,7 +88,8 @@ namespace FovCalibrationTool.FovCalculator
         {
             var statePrevious = State;
 
-            if (statePrevious.Enabled == false)
+            if (statePrevious.Tracking == false ||
+                statePrevious.Mode == FovCalculatorMode.Disabled)
             {
                 return;
             }
@@ -97,7 +99,7 @@ namespace FovCalibrationTool.FovCalculator
             if (statePrevious.Mode == FovCalculatorMode.Capture360)
             {
                 state = new FovCalculatorState(
-                    statePrevious.Enabled,
+                    statePrevious.Tracking,
                     statePrevious.Mode,
                     statePrevious.PointsPer360Deg + pointsDelta,
                     statePrevious.PointsPerCustomDeg
@@ -107,7 +109,7 @@ namespace FovCalibrationTool.FovCalculator
             if (statePrevious.Mode == FovCalculatorMode.CaptureCustom)
             {
                 state = new FovCalculatorState(
-                    statePrevious.Enabled,
+                    statePrevious.Tracking,
                     statePrevious.Mode,
                     statePrevious.PointsPer360Deg,
                     statePrevious.PointsPerCustomDeg + pointsDelta

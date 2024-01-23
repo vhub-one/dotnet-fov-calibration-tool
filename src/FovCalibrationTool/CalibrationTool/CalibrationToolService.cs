@@ -11,12 +11,13 @@ namespace FovCalibrationTool.CalibrationTool
 {
     public class CalibrationToolService : BackgroundService
     {
+        private static readonly HotKey KeySetMode0 = new(Keys.NumPad0);
         private static readonly HotKey KeySetMode1 = new(Keys.NumPad1);
         private static readonly HotKey KeySetMode2 = new(Keys.NumPad2);
         private static readonly HotKey KeyMoveLeft = new(Keys.NumPad4);
         private static readonly HotKey KeyMoveRight = new(Keys.NumPad6);
-        private static readonly HotKey KeyEnable = new(Keys.LControlKey);
-        private static readonly HotKey KeyDisable = new(Keys.LControlKey, Keys.Control);
+        private static readonly HotKey KeyStart = new(Keys.LControlKey);
+        private static readonly HotKey KeyStop = new(Keys.LControlKey, Keys.Control);
 
         private readonly FovCalculatorViewModel _fovCalculator = new();
 
@@ -74,33 +75,38 @@ namespace FovCalibrationTool.CalibrationTool
         {
             var hotKeys = new[]
             {
+                KeySetMode0,
                 KeySetMode1,
                 KeySetMode2,
                 KeyMoveLeft,
                 KeyMoveRight,
-                KeyEnable,
-                KeyDisable
+                KeyStart,
+                KeyStop
             };
 
             var hotKeyStatusStream = _hotKeysTracker.TrackAsync(hotKeys, token);
 
             await foreach (var hotKeyStatus in hotKeyStatusStream)
             {
-                if (hotKeyStatus.HotKey == KeyEnable ||
-                    hotKeyStatus.HotKey == KeyDisable)
+                if (hotKeyStatus.HotKey == KeyStart ||
+                    hotKeyStatus.HotKey == KeyStop)
                 {
                     if (hotKeyStatus.HotKeyDirection == HotKeyDirection.Down)
                     {
-                        _fovCalculator.Enable(true);
+                        _fovCalculator.Track(true);
                     }
                     if (hotKeyStatus.HotKeyDirection == HotKeyDirection.Up)
                     {
-                        _fovCalculator.Enable(false);
+                        _fovCalculator.Track(false);
                     }
                 }
 
                 if (hotKeyStatus.HotKeyDirection == HotKeyDirection.Down)
                 {
+                    if (hotKeyStatus.HotKey == KeySetMode0)
+                    {
+                        _fovCalculator.ChangeMode(FovCalculatorMode.Disabled);
+                    }
                     if (hotKeyStatus.HotKey == KeySetMode1)
                     {
                         _fovCalculator.ChangeMode(FovCalculatorMode.Capture360);
@@ -109,19 +115,11 @@ namespace FovCalibrationTool.CalibrationTool
                     {
                         _fovCalculator.ChangeMode(FovCalculatorMode.CaptureCustom);
                     }
+
                     if (hotKeyStatus.HotKey == KeyMoveLeft || hotKeyStatus.HotKey == KeyMoveRight)
                     {
                         var state = _fovCalculator.State;
-                        var stateDelta = 0;
-
-                        if (state.Mode == FovCalculatorMode.Capture360)
-                        {
-                            stateDelta = Math.Abs(state.PointsPer360Deg);
-                        }
-                        if (state.Mode == FovCalculatorMode.CaptureCustom)
-                        {
-                            stateDelta = Math.Abs(state.PointsPerCustomDeg);
-                        }
+                        var stateDelta = FovCalculatorUtils.GetPoints(state);
 
                         if (hotKeyStatus.HotKey == KeyMoveLeft)
                         {
@@ -157,7 +155,7 @@ namespace FovCalibrationTool.CalibrationTool
             Console.WriteLine("{0,30}: {1,20}   ", "Mode", state.Mode);
 
             if (state.Mode == FovCalculatorMode.Capture360 &&
-                state.Enabled)
+                state.Tracking)
             {
                 Console.BackgroundColor = ConsoleColor.Red;
             }
@@ -167,7 +165,7 @@ namespace FovCalibrationTool.CalibrationTool
             Console.BackgroundColor = ConsoleColor.Black;
 
             if (state.Mode == FovCalculatorMode.CaptureCustom &&
-                state.Enabled)
+                state.Tracking)
             {
                 Console.BackgroundColor = ConsoleColor.Red;
             }
