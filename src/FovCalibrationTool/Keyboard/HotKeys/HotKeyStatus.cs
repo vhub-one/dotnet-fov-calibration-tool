@@ -1,8 +1,6 @@
 ﻿namespace FovCalibrationTool.Keyboard.HotKeys
 {
-    public class HotKeyStatus
+    public record HotKeyStatus(HotKey HotKey, HotKeyDirection HotKeyDirection)
     {
-        public HotKey HotKey { get; set; }
-        public HotKeyDirection HotKeyDirection { get; set; }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Gma.System.MouseKeyHook;
-using Gma.System.MouseKeyHook.HotKeys;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using System.Windows.Forms;
@@ -10,7 +9,7 @@ namespace FovCalibrationTool.Keyboard.HotKeys
     {
         public async IAsyncEnumerable<HotKeyStatus> TrackAsync(IEnumerable<HotKey> hotKeysList, [EnumeratorCancellation] CancellationToken token)
         {
-            var hotKeys = new HashSet<HotKey>(hotKeysList);
+            var hotKeys = hotKeysList.GroupBy(hk => hk.Keys).ToDictionary(g => g.Key, g => g.ToList());
             var hotKeysChannel = Channel.CreateUnbounded<HotKeyStatus>();
 
             void hotKeyDownHandler(object sender, KeyEventArgs e)
@@ -23,20 +22,26 @@ namespace FovCalibrationTool.Keyboard.HotKeys
                 hotKeyHandler(new HotKey(e.KeyCode, e.Modifiers), HotKeyDirection.Up);
             }
 
-            void hotKeyHandler(HotKey hotKey, HotKeyDirection direaction)
+            void hotKeyHandler(HotKey hotKey, HotKeyDirection direction)
             {
-                if (hotKeys.Contains(hotKey) == false)
+                var hotKeysRegistered = hotKeys.GetValueOrDefault(hotKey.Keys);
+
+                if (hotKeysRegistered == null)
                 {
                     return;
                 }
 
-                var hotKeyStatus = new HotKeyStatus
-                {
-                    HotKey = hotKey,
-                    HotKeyDirection = direaction
-                };
+                var hotKeyFound = hotKeysRegistered.Any(hotKey.HasHotKey);
 
-                hotKeysChannel.Writer.TryWrite(hotKeyStatus);
+                if (hotKeyFound)
+                {
+                    var hotKeyStatus = new HotKeyStatus(
+                        hotKey,
+                        direction
+                    );
+
+                    hotKeysChannel.Writer.TryWrite(hotKeyStatus);
+                }
             }
 
             ThreadPool.QueueUserWorkItem((state) =>

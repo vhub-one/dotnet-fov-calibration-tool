@@ -7,11 +7,15 @@ namespace FovCalibrationTool.FovCalculator
         {
             if (state.Mode == FovCalculatorMode.Capture360)
             {
-                return Math.Abs(state.PointsPer360Deg);
+                return (int)Math.Abs(state.PointsPer360Deg);
             }
-            if (state.Mode == FovCalculatorMode.CaptureCustom)
+            if (state.Mode == FovCalculatorMode.CaptureFov)
             {
-                return Math.Abs(state.PointsPerCustomDeg);
+                return (int)Math.Abs(state.PointsPerFovDeg);
+            }
+            if (state.Mode == FovCalculatorMode.CaptureViewPort)
+            {
+                return (int)Math.Abs(state.PointsPerViewPortDeg);
             }
 
             return 0;
@@ -20,23 +24,54 @@ namespace FovCalibrationTool.FovCalculator
         public static FovStatistics CalculateStatistics(FovCalculatorState state)
         {
             var pointsPer360Deg = Math.Abs(state.PointsPer360Deg);
-            var pointsPer1Deg = pointsPer360Deg / 360d;
-            var pointsPerCustomDeg = Math.Abs(state.PointsPerCustomDeg);
+            var pointsPerFovDeg = Math.Abs(state.PointsPerFovDeg);
+            var pointsPerViewPortDeg = Math.Abs(state.PointsPerViewPortDeg);
 
-            var customDeg = default(double);
+            var fovDeg = double.NaN;
+
+            var pointsPer1Deg = pointsPer360Deg / 360d;
 
             if (pointsPer1Deg > 0)
             {
-                customDeg = pointsPerCustomDeg / pointsPer1Deg;
+                fovDeg = pointsPerFovDeg / pointsPer1Deg;
             }
+
+            var viewPortDegEstimate = double.NaN;
+
+            if (fovDeg < 180)
+            {
+                var viewPortFraction = state.ViewPortDistance / state.FovDistance;
+
+                if (viewPortFraction < 1)
+                {
+                    var fovRad = fovDeg * Math.PI / 180;
+                    var viewPortRad = Math.Atan(Math.Tan(fovRad / 2) * viewPortFraction) * 2;
+
+                    viewPortDegEstimate = viewPortRad * 180 / Math.PI;
+                }
+            }
+
+            var pointsPer1DegEstimate = double.NaN;
+
+            if (viewPortDegEstimate > 0)
+            {
+                pointsPer1DegEstimate = pointsPerViewPortDeg / viewPortDegEstimate;
+            }
+
+            var pointsPerViewPortDegEstimate = viewPortDegEstimate * pointsPer1Deg;
+            var pointsPer360DegEstimate = pointsPer1DegEstimate * 360;
+            var pointsPerFovDegEstimate = pointsPer1DegEstimate * fovDeg;
 
             return new FovStatistics
             {
-                PointsPer360Deg  = pointsPer360Deg,
-                PointsPer1Deg = pointsPer1Deg,
-                PointsPerCustomDeg = pointsPerCustomDeg,
-
-                CustomDeg = customDeg
+                FovDeg = fovDeg,
+                ViewPortDeg = viewPortDegEstimate,
+                PointsPerViewPortDeg = pointsPerViewPortDeg,
+                PointsPer360Deg = pointsPer360Deg,
+                PointsPerFovDeg = pointsPerFovDeg,
+                PointsPerViewPortDegEstimate = pointsPerViewPortDegEstimate,
+                PointsPer360DegEstimate = pointsPer360DegEstimate,
+                PointsPerFovDegEstimate = pointsPerFovDegEstimate
             };
         }
     }

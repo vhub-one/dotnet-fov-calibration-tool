@@ -8,5 +8,10 @@
   },
   "MouseMovementTrackerOptions": {
     "PollPeriod": 5
+  },
+  "CalibrationToolOptions": {
+    "FovDistance": 510,
+    "ViewPortDistance": 180,
+    "ViewPortPoints": 1016.45
   }
 }

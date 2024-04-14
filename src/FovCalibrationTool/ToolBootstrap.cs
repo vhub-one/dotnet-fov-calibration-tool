@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Globalization;
 
 namespace FovCalibrationTool
 {
@@ -11,6 +12,9 @@ namespace FovCalibrationTool
     {
         static Task<int> Main(params string[] args)
         {
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
             var command = new RootCommand
             {
                 TreatUnmatchedTokensAsErrors = true

@@ -4,6 +4,7 @@ using FovCalibrationTool.Mouse.MovementManager;
 using FovCalibrationTool.Mouse.MovementTracker;
 using FovCalibrationTool.Mvvm;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using System.Threading.Channels;
 using System.Windows.Forms;
 
@@ -14,26 +15,44 @@ namespace FovCalibrationTool.CalibrationTool
         private static readonly HotKey KeySetMode0 = new(Keys.NumPad0);
         private static readonly HotKey KeySetMode1 = new(Keys.NumPad1);
         private static readonly HotKey KeySetMode2 = new(Keys.NumPad2);
+        private static readonly HotKey KeySetMode3 = new(Keys.NumPad3);
         private static readonly HotKey KeyMoveLeft = new(Keys.NumPad4);
+        private static readonly HotKey KeyUseEstiamte = new(Keys.NumPad5);
         private static readonly HotKey KeyMoveRight = new(Keys.NumPad6);
-        private static readonly HotKey KeyStart = new(Keys.LControlKey);
-        private static readonly HotKey KeyStop = new(Keys.LControlKey, Keys.Control);
-
-        private readonly FovCalculatorViewModel _fovCalculator = new();
+        private static readonly HotKey KeyTrack = new(Keys.LControlKey);
 
         private readonly MouseMovementTracker _movementTracker;
         private readonly MouseMovementManager _movementManager;
         private readonly HotKeysTracker _hotKeysTracker;
+        private readonly IOptions<CalibrationToolOptions> _optionsAccessor;
 
-        public CalibrationToolService(MouseMovementTracker movementTracker, MouseMovementManager movementManager, HotKeysTracker hotKeysTracker)
+        private FovCalculatorViewModel _fovCalculator;
+
+        public CalibrationToolService(MouseMovementTracker movementTracker, MouseMovementManager movementManager, HotKeysTracker hotKeysTracker, IOptions<CalibrationToolOptions> optionsAccessor)
         {
             _movementTracker = movementTracker;
             _movementManager = movementManager;
             _hotKeysTracker = hotKeysTracker;
+            _optionsAccessor = optionsAccessor;
         }
 
         protected override Task ExecuteAsync(CancellationToken token)
         {
+            var options = _optionsAccessor.Value;
+
+            if (options == null)
+            {
+                throw new InvalidOperationException();
+            }
+
+            var fovCalculatorState = FovCalculatorState.CreateDefault(
+                options.FovDistance,
+                options.ViewPortDistance,
+                options.ViewPortPoints
+            );
+
+            _fovCalculator = new FovCalculatorViewModel(fovCalculatorState);
+
             return Task.WhenAll(
                 TrackStateChangesAsync(token),
                 TrackMouseMovementAsync(token),
@@ -78,50 +97,57 @@ namespace FovCalibrationTool.CalibrationTool
                 KeySetMode0,
                 KeySetMode1,
                 KeySetMode2,
+                KeySetMode3,
                 KeyMoveLeft,
                 KeyMoveRight,
-                KeyStart,
-                KeyStop
+                KeyUseEstiamte,
+                KeyTrack
             };
 
             var hotKeyStatusStream = _hotKeysTracker.TrackAsync(hotKeys, token);
 
-            await foreach (var hotKeyStatus in hotKeyStatusStream)
+            await foreach (var (hotKey, direction) in hotKeyStatusStream)
             {
-                if (hotKeyStatus.HotKey == KeyStart ||
-                    hotKeyStatus.HotKey == KeyStop)
+                if (hotKey.HasHotKey(KeyTrack))
                 {
-                    if (hotKeyStatus.HotKeyDirection == HotKeyDirection.Down)
+                    if (direction == HotKeyDirection.Down)
                     {
-                        _fovCalculator.Track(true);
+                        _fovCalculator.Track(true, hotKey.KeysModifier.HasFlag(Keys.Shift));
                     }
-                    if (hotKeyStatus.HotKeyDirection == HotKeyDirection.Up)
+                    if (direction == HotKeyDirection.Up)
                     {
                         _fovCalculator.Track(false);
                     }
                 }
 
-                if (hotKeyStatus.HotKeyDirection == HotKeyDirection.Down)
+                if (direction == HotKeyDirection.Down)
                 {
-                    if (hotKeyStatus.HotKey == KeySetMode0)
+                    if (hotKey.HasHotKey(KeySetMode0))
                     {
                         _fovCalculator.ChangeMode(FovCalculatorMode.Disabled);
                     }
-                    if (hotKeyStatus.HotKey == KeySetMode1)
+                    if (hotKey.HasHotKey(KeySetMode1))
                     {
                         _fovCalculator.ChangeMode(FovCalculatorMode.Capture360);
                     }
-                    if (hotKeyStatus.HotKey == KeySetMode2)
+                    if (hotKey.HasHotKey(KeySetMode2))
                     {
-                        _fovCalculator.ChangeMode(FovCalculatorMode.CaptureCustom);
+                        _fovCalculator.ChangeMode(FovCalculatorMode.CaptureFov);
                     }
-
-                    if (hotKeyStatus.HotKey == KeyMoveLeft || hotKeyStatus.HotKey == KeyMoveRight)
+                    if (hotKey.HasHotKey(KeySetMode3))
+                    {
+                        _fovCalculator.ChangeMode(FovCalculatorMode.CaptureViewPort);
+                    }
+                    if (hotKey.HasHotKey(KeyUseEstiamte))
+                    {
+                        _fovCalculator.UseEstimate();
+                    }
+                    if (hotKey.HasHotKey(KeyMoveLeft) || hotKey.HasHotKey(KeyMoveRight))
                     {
                         var state = _fovCalculator.State;
                         var stateDelta = FovCalculatorUtils.GetPoints(state);
 
-                        if (hotKeyStatus.HotKey == KeyMoveLeft)
+                        if (hotKey.HasHotKey(KeyMoveLeft))
                         {
                             stateDelta = -stateDelta;
                         }
@@ -152,27 +178,109 @@ namespace FovCalibrationTool.CalibrationTool
             var stateStats = FovCalculatorUtils.CalculateStatistics(state);
 
             Console.SetCursorPosition(0, 0);
-            Console.WriteLine("{0,30}: {1,20}   ", "Mode", state.Mode);
 
-            if (state.Mode == FovCalculatorMode.Capture360 &&
-                state.Tracking)
+            DrawStateLine("Mode", state.Mode);
+
+            Console.WriteLine();
+
+            DrawStateCaption("#1 SET 360 DISTANCE", state, FovCalculatorMode.Capture360);
+
+            DrawStateLine("points", stateStats.PointsPer360Deg);
+            DrawStateLine("estimated points", stateStats.PointsPer360DegEstimate);
+
+            DrawStateFooter();
+
+            Console.WriteLine();
+
+            DrawStateCaption("#2 SET FIELD OF VIEW DISTANCE", state, FovCalculatorMode.CaptureFov);
+
+            DrawStateLine("angle", stateStats.FovDeg);
+            DrawStateLine("distance", state.FovDistance);
+            DrawStateLine("points", stateStats.PointsPerFovDeg);
+            DrawStateLine("estimated points", stateStats.PointsPerFovDegEstimate);
+
+            DrawStateFooter();
+
+            Console.WriteLine();
+
+            DrawStateCaption("#3 TUNE VIEW PORT DISTANCE", state, FovCalculatorMode.CaptureViewPort);
+
+            DrawStateLine("angle", stateStats.ViewPortDeg);
+            DrawStateLine("distance", state.ViewPortDistance);
+            DrawStateLine("points", stateStats.PointsPerViewPortDeg);
+            DrawStateLine("estimated points", stateStats.PointsPerViewPortDegEstimate);
+
+            DrawStateFooter();
+
+            Console.WriteLine();
+
+            DrawStateCaption("# HOT KEYS");
+
+            DrawStateLine("numpad [0]", "disable");
+            DrawStateLine("numpad [1]", "set 360 distance");
+            DrawStateLine("numpad [2]", "set FOV distance");
+            DrawStateLine("numpad [3]", "tune VP distance");
+            DrawStateLine("numpad [4]", "move left");
+            DrawStateLine("numpad [5]", "use estimates");
+            DrawStateLine("numpad [6]", "move right");
+            DrawStateLine("[ctrl]", "set distance");
+            DrawStateLine("[shift] + [ctrl]", "tune distance");
+        }
+
+        private static void DrawStateCaption(string caption, FovCalculatorState state, FovCalculatorMode stateMode)
+        {
+            if (state.Mode == stateMode)
             {
-                Console.BackgroundColor = ConsoleColor.Red;
+                if (state.Tracking)
+                {
+                    Console.BackgroundColor = ConsoleColor.Red;
+                }
+                else
+                {
+                    Console.BackgroundColor = ConsoleColor.Green;
+                }
+
+                Console.ForegroundColor = ConsoleColor.Black;
             }
 
-            Console.WriteLine("{0,30}: {1,20}   ", "Points per 360 angle", stateStats.PointsPer360Deg);
-            Console.WriteLine("{0,30}: {1,23:F2}", "Points per 1 angle", stateStats.PointsPer1Deg);
-            Console.BackgroundColor = ConsoleColor.Black;
+            DrawStateCaption(caption);
 
-            if (state.Mode == FovCalculatorMode.CaptureCustom &&
-                state.Tracking)
+            if (state.Tracking == false)
             {
-                Console.BackgroundColor = ConsoleColor.Red;
+                Console.BackgroundColor = ConsoleColor.Black;
+                Console.ForegroundColor = ConsoleColor.Gray;
             }
+        }
 
-            Console.WriteLine("{0,30}: {1,20}   ", "Points per custom angle", stateStats.PointsPerCustomDeg);
-            Console.WriteLine("{0,30}: {1,23:F2}", "Custom angle", stateStats.CustomDeg);
+        private static void DrawStateCaption(string caption)
+        {
+            Console.WriteLine(caption.PadRight(55));
+        }
+
+        private static void DrawStateFooter()
+        {
             Console.BackgroundColor = ConsoleColor.Black;
+            Console.ForegroundColor = ConsoleColor.Gray;
+        }
+
+        private static void DrawStateLine(string caption, double value)
+        {
+            Console.Write("{0,30}: ", caption);
+
+            if (double.IsFinite(value))
+            {
+                Console.WriteLine("{0,23:F2}", value);
+            }
+            else
+            {
+                Console.WriteLine("{0,23}", $"-.--");
+            }
+        }
+
+        private static void DrawStateLine<TValue>(string caption, TValue value)
+        {
+            Console.Write("{0,30}: ", caption);
+            Console.WriteLine("{0,23}", value);
         }
     }
 }

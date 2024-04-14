@@ -43,6 +43,7 @@ namespace FovCalibrationTool
 
                 #endregion
 
+                services.ConfigureByName<CalibrationToolOptions>(required: true);
                 services.AddHostedService<CalibrationToolService>();
             });
         }
