@@ -64,6 +64,16 @@ namespace FovCalibrationTool.FovCalculator
 
             if (tracking)
             {
+                double GetInitialPoints(double pointsPrevious)
+                {
+                    if (double.IsFinite(pointsPrevious) && tune)
+                    {
+                        return pointsPrevious;
+                    }
+
+                    return 0;
+                }
+
                 if (statePrevious.Mode == FovCalculatorMode.Capture360)
                 {
                     state = new FovCalculatorState(
@@ -71,7 +81,7 @@ namespace FovCalibrationTool.FovCalculator
                         statePrevious.Mode,
                         statePrevious.FovDistance,
                         statePrevious.ViewPortDistance,
-                        PointsPer360Deg: tune ? statePrevious.PointsPer360Deg : 0,
+                        PointsPer360Deg: GetInitialPoints(statePrevious.PointsPer360Deg),
                         statePrevious.PointsPerFovDeg,
                         statePrevious.PointsPerViewPortDeg
                     );
@@ -84,7 +94,7 @@ namespace FovCalibrationTool.FovCalculator
                         statePrevious.FovDistance,
                         statePrevious.ViewPortDistance,
                         statePrevious.PointsPer360Deg,
-                        PointsPerFovDeg: tune ? statePrevious.PointsPerFovDeg : 0,
+                        PointsPerFovDeg: GetInitialPoints(statePrevious.PointsPerFovDeg),
                         statePrevious.PointsPerViewPortDeg
                     );
                 }
@@ -97,7 +107,7 @@ namespace FovCalibrationTool.FovCalculator
                         statePrevious.ViewPortDistance,
                         statePrevious.PointsPer360Deg,
                         statePrevious.PointsPerFovDeg,
-                        PointsPerViewPortDeg: tune ? statePrevious.PointsPerViewPortDeg : 0
+                        PointsPerViewPortDeg: GetInitialPoints(statePrevious.PointsPerViewPortDeg)
                     );
                 }
             }
