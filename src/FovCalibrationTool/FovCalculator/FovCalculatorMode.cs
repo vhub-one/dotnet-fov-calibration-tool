@@ -5,7 +5,6 @@ namespace FovCalibrationTool.FovCalculator
     {
         Disabled,
         Capture360,
-        CaptureFov,
-        CaptureViewPort
+        CaptureFov
     }
 }

@@ -3,6 +3,7 @@ using FovCalibrationTool.Keyboard.HotKeys;
 using FovCalibrationTool.Mouse.MovementManager;
 using FovCalibrationTool.Mouse.MovementTracker;
 using FovCalibrationTool.Mvvm;
+using FovCalibrationTool.Render;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System.Threading.Channels;
@@ -15,10 +16,12 @@ namespace FovCalibrationTool.CalibrationTool
         private static readonly HotKey KeySetMode0 = new(Keys.NumPad0);
         private static readonly HotKey KeySetMode1 = new(Keys.NumPad1);
         private static readonly HotKey KeySetMode2 = new(Keys.NumPad2);
-        private static readonly HotKey KeySetMode3 = new(Keys.NumPad3);
         private static readonly HotKey KeyMoveLeft = new(Keys.NumPad4);
-        private static readonly HotKey KeyUseEstiamte = new(Keys.NumPad5);
+        private static readonly HotKey KeyUseEstiamtedSens = new(Keys.NumPad5);
         private static readonly HotKey KeyMoveRight = new(Keys.NumPad6);
+        private static readonly HotKey KeyMoveLeftBy1 = new(Keys.NumPad7);
+        private static readonly HotKey KeyUseEstiamtedAngle = new(Keys.NumPad8);
+        private static readonly HotKey KeyMoveRightBy1 = new(Keys.NumPad9);
         private static readonly HotKey KeyTrack = new(Keys.LControlKey);
 
         private readonly MouseMovementTracker _movementTracker;
@@ -46,8 +49,11 @@ namespace FovCalibrationTool.CalibrationTool
             }
 
             var fovCalculatorState = FovCalculatorState.CreateDefault(
-                options.FovDistance,
-                options.ViewPortDistance,
+                options.DisplayType,
+                options.FovWidth,
+                options.DisplayDistance,
+                options.ViewPortObserveDeg,
+                options.ViewPortDeg,
                 options.ViewPortPoints
             );
 
@@ -97,10 +103,12 @@ namespace FovCalibrationTool.CalibrationTool
                 KeySetMode0,
                 KeySetMode1,
                 KeySetMode2,
-                KeySetMode3,
                 KeyMoveLeft,
+                KeyMoveLeftBy1,
                 KeyMoveRight,
-                KeyUseEstiamte,
+                KeyMoveRightBy1,
+                KeyUseEstiamtedSens,
+                KeyUseEstiamtedAngle,
                 KeyTrack
             };
 
@@ -134,25 +142,38 @@ namespace FovCalibrationTool.CalibrationTool
                     {
                         _fovCalculator.ChangeMode(FovCalculatorMode.CaptureFov);
                     }
-                    if (hotKey.HasHotKey(KeySetMode3))
+                    if (hotKey.HasHotKey(KeyUseEstiamtedSens))
                     {
-                        _fovCalculator.ChangeMode(FovCalculatorMode.CaptureViewPort);
+                        _fovCalculator.UseEstiamtedSens();
                     }
-                    if (hotKey.HasHotKey(KeyUseEstiamte))
+                    if (hotKey.HasHotKey(KeyUseEstiamtedAngle))
                     {
-                        _fovCalculator.UseEstimate();
+                        _fovCalculator.UseEstiamtedAngle();
                     }
                     if (hotKey.HasHotKey(KeyMoveLeft) || hotKey.HasHotKey(KeyMoveRight))
                     {
                         var state = _fovCalculator.State;
-                        var stateDelta = FovCalculatorUtils.GetPoints(state);
+                        var stateDeltaAbs = FovCalculatorUtils.GetPoints(state);
 
                         if (hotKey.HasHotKey(KeyMoveLeft))
                         {
-                            stateDelta = -stateDelta;
+                            _movementManager.MoveByOffset(-stateDeltaAbs, 0);
                         }
-
-                        _movementManager.MoveByOffset(stateDelta, 0);
+                        if (hotKey.HasHotKey(KeyMoveRight))
+                        {
+                            _movementManager.MoveByOffset(stateDeltaAbs, 0);
+                        }
+                    }
+                    if (hotKey.HasHotKey(KeyMoveLeftBy1) || hotKey.HasHotKey(KeyMoveRightBy1))
+                    {
+                        if (hotKey.HasHotKey(KeyMoveLeftBy1))
+                        {
+                            _movementManager.MoveByOffset(-1, 0);
+                        }
+                        if (hotKey.HasHotKey(KeyMoveRightBy1))
+                        {
+                            _movementManager.MoveByOffset(1, 0);
+                        }
                     }
                 }
             }
@@ -177,110 +198,83 @@ namespace FovCalibrationTool.CalibrationTool
         {
             var stateStats = FovCalculatorUtils.CalculateStatistics(state);
 
-            Console.SetCursorPosition(0, 0);
-
-            DrawStateLine("Mode", state.Mode);
-
-            Console.WriteLine();
-
-            DrawStateCaption("#1 SET 360 DISTANCE", state, FovCalculatorMode.Capture360);
-
-            DrawStateLine("points", stateStats.PointsPer360Deg);
-            DrawStateLine("estimated points", stateStats.PointsPer360DegEstimate);
-
-            DrawStateFooter();
-
-            Console.WriteLine();
-
-            DrawStateCaption("#2 SET FIELD OF VIEW DISTANCE", state, FovCalculatorMode.CaptureFov);
-
-            DrawStateLine("angle", stateStats.FovDeg);
-            DrawStateLine("distance", state.FovDistance);
-            DrawStateLine("points", stateStats.PointsPerFovDeg);
-            DrawStateLine("estimated points", stateStats.PointsPerFovDegEstimate);
-
-            DrawStateFooter();
-
-            Console.WriteLine();
-
-            DrawStateCaption("#3 TUNE VIEW PORT DISTANCE", state, FovCalculatorMode.CaptureViewPort);
-
-            DrawStateLine("angle", stateStats.ViewPortDeg);
-            DrawStateLine("distance", state.ViewPortDistance);
-            DrawStateLine("points", stateStats.PointsPerViewPortDeg);
-            DrawStateLine("estimated points", stateStats.PointsPerViewPortDegEstimate);
-
-            DrawStateFooter();
-
-            Console.WriteLine();
-
-            DrawStateCaption("# HOT KEYS");
-
-            DrawStateLine("numpad [0]", "disable");
-            DrawStateLine("numpad [1]", "set 360 distance");
-            DrawStateLine("numpad [2]", "set FOV distance");
-            DrawStateLine("numpad [3]", "tune VP distance");
-            DrawStateLine("numpad [4]", "move left");
-            DrawStateLine("numpad [5]", "use estimates");
-            DrawStateLine("numpad [6]", "move right");
-            DrawStateLine("[ctrl]", "set distance");
-            DrawStateLine("[shift] + [ctrl]", "tune distance");
-        }
-
-        private static void DrawStateCaption(string caption, FovCalculatorState state, FovCalculatorMode stateMode)
-        {
-            if (state.Mode == stateMode)
+            DrawPane(60, 0, pane =>
             {
-                if (state.Tracking)
+                pane.DrawLine("# HOT KEYS");
+                pane.DrawLine("[numpad 0]", "disable");
+                pane.DrawLine("[numpad 1]", "set 360 points");
+                pane.DrawLine("[numpad 2]", "set FOV points");
+                pane.DrawLine("[numpad 4]", "move left");
+                pane.DrawLine("[numpad 5]", "use preset sens");
+                pane.DrawLine("[numpad 6]", "move right");
+                pane.DrawLine("[numpad 7]", "move left by 1");
+                pane.DrawLine("[numpad 8]", "use preset fov");
+                pane.DrawLine("[numpad 9]", "move right by 1");
+                pane.DrawLine("[ctrl]", "set points");
+                pane.DrawLine("[shift] + [ctrl]", "tune points");
+            });
+
+            DrawPane(0, 0, pane =>
+            {
+                var stateActive = state.Mode == FovCalculatorMode.Capture360;
+
+                if (stateActive && state.Tracking)
                 {
-                    Console.BackgroundColor = ConsoleColor.Red;
-                }
-                else
-                {
-                    Console.BackgroundColor = ConsoleColor.Green;
+                    pane.HighlightPane();
                 }
 
-                Console.ForegroundColor = ConsoleColor.Black;
-            }
+                pane.DrawHeader("#1 SET 360 DEG", stateActive);
+                pane.DrawLine("360 deg points", stateStats.PointsPer360Deg);
+                pane.DrawLine("1 deg points", stateStats.PointsPer1Deg);
+            });
 
-            DrawStateCaption(caption);
-
-            if (state.Tracking == false)
+            DrawPane(0, 4, pane =>
             {
-                Console.BackgroundColor = ConsoleColor.Black;
-                Console.ForegroundColor = ConsoleColor.Gray;
-            }
-        }
+                var stateActive = state.Mode == FovCalculatorMode.CaptureFov;
 
-        private static void DrawStateCaption(string caption)
-        {
-            Console.WriteLine(caption.PadRight(55));
-        }
+                if (stateActive && state.Tracking)
+                {
+                    pane.HighlightPane();
+                }
 
-        private static void DrawStateFooter()
-        {
-            Console.BackgroundColor = ConsoleColor.Black;
-            Console.ForegroundColor = ConsoleColor.Gray;
-        }
+                pane.DrawHeader("#2 SET FOV", stateActive);
+                pane.DrawLine("fov points", stateStats.PointsPerFovDeg);
+                pane.DrawLine("fov angle", stateStats.FovDeg);
+                pane.DrawLine("fov width", state.FovWidth);
+            });
 
-        private static void DrawStateLine(string caption, double value)
-        {
-            Console.Write("{0,30}: ", caption);
-
-            if (double.IsFinite(value))
+            DrawPane(0, 9, pane =>
             {
-                Console.WriteLine("{0,23:F2}", value);
-            }
-            else
+                pane.DrawLine("# PRESET");
+                pane.DrawLine("view port points", stateStats.PointsPerViewPortDeg);
+                pane.DrawLine("view port angle", stateStats.ViewPortDeg);
+                pane.DrawLine("view port width", stateStats.ViewPortWidth);
+            });
+
+            DrawPane(0, 14, pane =>
             {
-                Console.WriteLine("{0,23}", $"-.--");
-            }
+                pane.DrawLine("# PRESET-BASED FOV");
+                pane.DrawLine("preset view port angle", state.ViewPortDeg);
+                pane.DrawLine("fov angle", stateStats.FovDegAngleBased);
+                pane.DrawLine("fov points", stateStats.PointsPerFovDegAngleBased);
+            });
+
+            DrawPane(0, 19, pane =>
+            {
+                pane.DrawLine("# PRESET-BASED SENSITIVITY");
+                pane.DrawLine("preset view port points", state.PointsPerViewPortDeg);
+                pane.DrawLine("fov points", stateStats.PointsPerFovDegSensBased);
+                pane.DrawLine("360 deg points", stateStats.PointsPer360DegSensBased);
+                pane.DrawLine("1 deg points", stateStats.PointsPer1DegSensBased);
+            });
         }
 
-        private static void DrawStateLine<TValue>(string caption, TValue value)
+        private static void DrawPane(int x, int y, Action<ConsolePane> paneDrawAction)
         {
-            Console.Write("{0,30}: ", caption);
-            Console.WriteLine("{0,23}", value);
+            using (var pane = new ConsolePane(x, y))
+            {
+                paneDrawAction(pane);
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿namespace FovCalibrationTool.Keyboard.HotKeys
+﻿
+namespace FovCalibrationTool.Keyboard.HotKeys
 {
     public enum HotKeyDirection
     {

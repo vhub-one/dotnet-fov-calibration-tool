@@ -73,7 +73,7 @@ namespace FovCalibrationTool.Mouse.MovementTracker
             }
         }
 
-        private IDirectInputDevice8 CreateMouseDevice(IDirectInput8 directInput)
+        private static IDirectInputDevice8 CreateMouseDevice(IDirectInput8 directInput)
         {
             if (directInput.IsDeviceAttached(DeviceGuid.SysMouse) == false)
             {

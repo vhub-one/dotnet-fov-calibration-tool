@@ -24,6 +24,8 @@ namespace FovCalibrationTool.Keyboard.HotKeys
 
             void hotKeyHandler(HotKey hotKey, HotKeyDirection direction)
             {
+                // Debug.WriteLine($"{hotKey.Keys} [{direction}] + {hotKey.KeysModifier}");
+
                 var hotKeysRegistered = hotKeys.GetValueOrDefault(hotKey.Keys);
 
                 if (hotKeysRegistered == null)

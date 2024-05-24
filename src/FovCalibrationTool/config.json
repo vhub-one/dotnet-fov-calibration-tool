@@ -10,8 +10,11 @@
     "PollPeriod": 5
   },
   "CalibrationToolOptions": {
-    "FovDistance": 510,
-    "ViewPortDistance": 180,
-    "ViewPortPoints": 1016.45
+    "DisplayType": "Flat",
+    "DisplayDistance": 600,
+    "FovWidth": 510,
+    "ViewPortObserveDeg": 18,
+    "ViewPortDeg": 40.88,
+    "ViewPortPoints": 1068.84
   }
 }

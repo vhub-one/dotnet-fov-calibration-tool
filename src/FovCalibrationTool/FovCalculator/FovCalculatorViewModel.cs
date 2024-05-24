@@ -9,7 +9,7 @@ namespace FovCalibrationTool.FovCalculator
             RestoreState(state);
         }
 
-        public void UseEstimate()
+        public void UseEstiamtedSens()
         {
             var statePrevious = State;
 
@@ -18,10 +18,35 @@ namespace FovCalibrationTool.FovCalculator
             var state = new FovCalculatorState(
                 statePrevious.Tracking,
                 statePrevious.Mode,
-                statePrevious.FovDistance,
-                statePrevious.ViewPortDistance,
-                stateStatistics.PointsPer360DegEstimate,
-                stateStatistics.PointsPerFovDegEstimate,
+                statePrevious.DisplayType,
+                statePrevious.DisplayDistance,
+                statePrevious.FovWidth,
+                statePrevious.ViewPortDeg,
+                statePrevious.ViewPortObserveDeg,
+                stateStatistics.PointsPer360DegSensBased,
+                stateStatistics.PointsPerFovDegSensBased,
+                statePrevious.PointsPerViewPortDeg
+            );
+
+            UpdateState(state);
+        }
+
+        public void UseEstiamtedAngle()
+        {
+            var statePrevious = State;
+
+            var stateStatistics = FovCalculatorUtils.CalculateStatistics(statePrevious);
+
+            var state = new FovCalculatorState(
+                statePrevious.Tracking,
+                statePrevious.Mode,
+                statePrevious.DisplayType,
+                statePrevious.DisplayDistance,
+                statePrevious.FovWidth,
+                statePrevious.ViewPortDeg,
+                statePrevious.ViewPortObserveDeg,
+                statePrevious.PointsPer360Deg,
+                stateStatistics.PointsPerFovDegAngleBased,
                 statePrevious.PointsPerViewPortDeg
             );
 
@@ -40,8 +65,11 @@ namespace FovCalibrationTool.FovCalculator
             var state = new FovCalculatorState(
                 statePrevious.Tracking,
                 Mode: mode,
-                statePrevious.FovDistance,
-                statePrevious.ViewPortDistance,
+                statePrevious.DisplayType,
+                statePrevious.DisplayDistance,
+                statePrevious.FovWidth,
+                statePrevious.ViewPortDeg,
+                statePrevious.ViewPortObserveDeg,
                 statePrevious.PointsPer360Deg,
                 statePrevious.PointsPerFovDeg,
                 statePrevious.PointsPerViewPortDeg
@@ -79,8 +107,11 @@ namespace FovCalibrationTool.FovCalculator
                     state = new FovCalculatorState(
                         Tracking: tracking,
                         statePrevious.Mode,
-                        statePrevious.FovDistance,
-                        statePrevious.ViewPortDistance,
+                        statePrevious.DisplayType,
+                        statePrevious.DisplayDistance,
+                        statePrevious.FovWidth,
+                        statePrevious.ViewPortDeg,
+                        statePrevious.ViewPortObserveDeg,
                         PointsPer360Deg: GetInitialPoints(statePrevious.PointsPer360Deg),
                         statePrevious.PointsPerFovDeg,
                         statePrevious.PointsPerViewPortDeg
@@ -91,23 +122,14 @@ namespace FovCalibrationTool.FovCalculator
                     state = new FovCalculatorState(
                         Tracking: tracking,
                         statePrevious.Mode,
-                        statePrevious.FovDistance,
-                        statePrevious.ViewPortDistance,
+                        statePrevious.DisplayType,
+                        statePrevious.DisplayDistance,
+                        statePrevious.FovWidth,
+                        statePrevious.ViewPortDeg,
+                        statePrevious.ViewPortObserveDeg,
                         statePrevious.PointsPer360Deg,
                         PointsPerFovDeg: GetInitialPoints(statePrevious.PointsPerFovDeg),
                         statePrevious.PointsPerViewPortDeg
-                    );
-                }
-                if (statePrevious.Mode == FovCalculatorMode.CaptureViewPort)
-                {
-                    state = new FovCalculatorState(
-                        Tracking: tracking,
-                        statePrevious.Mode,
-                        statePrevious.FovDistance,
-                        statePrevious.ViewPortDistance,
-                        statePrevious.PointsPer360Deg,
-                        statePrevious.PointsPerFovDeg,
-                        PointsPerViewPortDeg: GetInitialPoints(statePrevious.PointsPerViewPortDeg)
                     );
                 }
             }
@@ -116,8 +138,11 @@ namespace FovCalibrationTool.FovCalculator
                 state = new FovCalculatorState(
                     Tracking: tracking,
                     statePrevious.Mode,
-                    statePrevious.FovDistance,
-                    statePrevious.ViewPortDistance,
+                    statePrevious.DisplayType,
+                    statePrevious.DisplayDistance,
+                    statePrevious.FovWidth,
+                    statePrevious.ViewPortDeg,
+                    statePrevious.ViewPortObserveDeg,
                     statePrevious.PointsPer360Deg,
                     statePrevious.PointsPerFovDeg,
                     statePrevious.PointsPerViewPortDeg
@@ -147,8 +172,11 @@ namespace FovCalibrationTool.FovCalculator
                 state = new FovCalculatorState(
                     statePrevious.Tracking,
                     statePrevious.Mode,
-                    statePrevious.FovDistance,
-                    statePrevious.ViewPortDistance,
+                    statePrevious.DisplayType,
+                    statePrevious.DisplayDistance,
+                    statePrevious.FovWidth,
+                    statePrevious.ViewPortDeg,
+                    statePrevious.ViewPortObserveDeg,
                     statePrevious.PointsPer360Deg + pointsDelta,
                     statePrevious.PointsPerFovDeg,
                     statePrevious.PointsPerViewPortDeg
@@ -160,24 +188,14 @@ namespace FovCalibrationTool.FovCalculator
                 state = new FovCalculatorState(
                     statePrevious.Tracking,
                     statePrevious.Mode,
-                    statePrevious.FovDistance,
-                    statePrevious.ViewPortDistance,
+                    statePrevious.DisplayType,
+                    statePrevious.DisplayDistance,
+                    statePrevious.FovWidth,
+                    statePrevious.ViewPortDeg,
+                    statePrevious.ViewPortObserveDeg,
                     statePrevious.PointsPer360Deg,
                     statePrevious.PointsPerFovDeg + pointsDelta,
                     statePrevious.PointsPerViewPortDeg
-                );
-            }
-
-            if (statePrevious.Mode == FovCalculatorMode.CaptureViewPort)
-            {
-                state = new FovCalculatorState(
-                    statePrevious.Tracking,
-                    statePrevious.Mode,
-                    statePrevious.FovDistance,
-                    statePrevious.ViewPortDistance,
-                    statePrevious.PointsPer360Deg,
-                    statePrevious.PointsPerFovDeg,
-                    statePrevious.PointsPerViewPortDeg + pointsDelta
                 );
             }
 
