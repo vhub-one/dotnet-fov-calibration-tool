@@ -1,5 +1,6 @@
 ﻿using Common.Hosting.Configuration;
 using FovCalibrationTool.CalibrationTool;
+using FovCalibrationTool.FovCalculator;
 using FovCalibrationTool.Keyboard.HotKeys;
 using FovCalibrationTool.Mouse.MovementManager;
 using FovCalibrationTool.Mouse.MovementTracker;
@@ -40,6 +41,13 @@ namespace FovCalibrationTool
                 #region [HotKeysTracker]
 
                 services.AddSingleton<HotKeysTracker>();
+
+                #endregion
+
+                #region [CalculatorActionController]
+
+                services.ConfigureByName<CalcualtorActionOptions>();
+                services.AddSingleton<CalculatorActionController>();
 
                 #endregion
 

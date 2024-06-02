@@ -1,5 +1,4 @@
 ﻿using FovCalibrationTool.FovCalculator;
-using FovCalibrationTool.Keyboard.HotKeys;
 using FovCalibrationTool.Mouse.MovementManager;
 using FovCalibrationTool.Mouse.MovementTracker;
 using FovCalibrationTool.Mvvm;
@@ -7,35 +6,24 @@ using FovCalibrationTool.Render;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System.Threading.Channels;
-using System.Windows.Forms;
 
 namespace FovCalibrationTool.CalibrationTool
 {
     public class CalibrationToolService : BackgroundService
     {
-        private static readonly HotKey KeySetMode0 = new(Keys.NumPad0);
-        private static readonly HotKey KeySetMode1 = new(Keys.NumPad1);
-        private static readonly HotKey KeySetMode2 = new(Keys.NumPad2);
-        private static readonly HotKey KeyMoveLeft = new(Keys.NumPad4);
-        private static readonly HotKey KeyUseEstiamtedSens = new(Keys.NumPad5);
-        private static readonly HotKey KeyMoveRight = new(Keys.NumPad6);
-        private static readonly HotKey KeyMoveLeftBy1 = new(Keys.NumPad7);
-        private static readonly HotKey KeyUseEstiamtedAngle = new(Keys.NumPad8);
-        private static readonly HotKey KeyMoveRightBy1 = new(Keys.NumPad9);
-        private static readonly HotKey KeyTrack = new(Keys.LControlKey);
+        private readonly IOptions<CalibrationToolOptions> _optionsAccessor;
 
         private readonly MouseMovementTracker _movementTracker;
         private readonly MouseMovementManager _movementManager;
-        private readonly HotKeysTracker _hotKeysTracker;
-        private readonly IOptions<CalibrationToolOptions> _optionsAccessor;
+        private readonly CalculatorActionController _calculatorController;
 
         private FovCalculatorViewModel _fovCalculator;
 
-        public CalibrationToolService(MouseMovementTracker movementTracker, MouseMovementManager movementManager, HotKeysTracker hotKeysTracker, IOptions<CalibrationToolOptions> optionsAccessor)
+        public CalibrationToolService(MouseMovementTracker movementTracker, MouseMovementManager movementManager, CalculatorActionController calculatorController, IOptions<CalibrationToolOptions> optionsAccessor)
         {
             _movementTracker = movementTracker;
             _movementManager = movementManager;
-            _hotKeysTracker = hotKeysTracker;
+            _calculatorController = calculatorController;
             _optionsAccessor = optionsAccessor;
         }
 
@@ -84,7 +72,7 @@ namespace FovCalibrationTool.CalibrationTool
 
                 while (true)
                 {
-                    DrawState(state);
+                    await DrawStateAsync(state, token);
 
                     // Get updated state
                     state = await stateChannel.Reader.ReadAsync(token);
@@ -98,84 +86,15 @@ namespace FovCalibrationTool.CalibrationTool
 
         private async Task TrackHotKeysAsync(CancellationToken token)
         {
-            var hotKeys = new[]
+            var actionsStreamDispatcher = new SyncDispatcher();
+            var actionsStream = _calculatorController.TrackActionAsync(token);
+
+            await foreach (var action in actionsStream)
             {
-                KeySetMode0,
-                KeySetMode1,
-                KeySetMode2,
-                KeyMoveLeft,
-                KeyMoveLeftBy1,
-                KeyMoveRight,
-                KeyMoveRightBy1,
-                KeyUseEstiamtedSens,
-                KeyUseEstiamtedAngle,
-                KeyTrack
-            };
-
-            var hotKeyStatusStream = _hotKeysTracker.TrackAsync(hotKeys, token);
-
-            await foreach (var (hotKey, direction) in hotKeyStatusStream)
-            {
-                if (hotKey.HasHotKey(KeyTrack))
-                {
-                    if (direction == HotKeyDirection.Down)
-                    {
-                        _fovCalculator.Track(true, hotKey.KeysModifier.HasFlag(Keys.Shift));
-                    }
-                    if (direction == HotKeyDirection.Up)
-                    {
-                        _fovCalculator.Track(false);
-                    }
-                }
-
-                if (direction == HotKeyDirection.Down)
-                {
-                    if (hotKey.HasHotKey(KeySetMode0))
-                    {
-                        _fovCalculator.ChangeMode(FovCalculatorMode.Disabled);
-                    }
-                    if (hotKey.HasHotKey(KeySetMode1))
-                    {
-                        _fovCalculator.ChangeMode(FovCalculatorMode.Capture360);
-                    }
-                    if (hotKey.HasHotKey(KeySetMode2))
-                    {
-                        _fovCalculator.ChangeMode(FovCalculatorMode.CaptureFov);
-                    }
-                    if (hotKey.HasHotKey(KeyUseEstiamtedSens))
-                    {
-                        _fovCalculator.UseEstiamtedSens();
-                    }
-                    if (hotKey.HasHotKey(KeyUseEstiamtedAngle))
-                    {
-                        _fovCalculator.UseEstiamtedAngle();
-                    }
-                    if (hotKey.HasHotKey(KeyMoveLeft) || hotKey.HasHotKey(KeyMoveRight))
-                    {
-                        var state = _fovCalculator.State;
-                        var stateDeltaAbs = FovCalculatorUtils.GetPoints(state);
-
-                        if (hotKey.HasHotKey(KeyMoveLeft))
-                        {
-                            _movementManager.MoveByOffset(-stateDeltaAbs, 0);
-                        }
-                        if (hotKey.HasHotKey(KeyMoveRight))
-                        {
-                            _movementManager.MoveByOffset(stateDeltaAbs, 0);
-                        }
-                    }
-                    if (hotKey.HasHotKey(KeyMoveLeftBy1) || hotKey.HasHotKey(KeyMoveRightBy1))
-                    {
-                        if (hotKey.HasHotKey(KeyMoveLeftBy1))
-                        {
-                            _movementManager.MoveByOffset(-1, 0);
-                        }
-                        if (hotKey.HasHotKey(KeyMoveRightBy1))
-                        {
-                            _movementManager.MoveByOffset(1, 0);
-                        }
-                    }
-                }
+                await actionsStreamDispatcher.ExecuteAsync(
+                    actionToken => HandleActionAsync(action, actionToken),
+                    action == CalculatorAction.Stop
+                );
             }
         }
 
@@ -194,24 +113,113 @@ namespace FovCalibrationTool.CalibrationTool
             return Task.Run(HandleMouseMovement, token);
         }
 
-        private void DrawState(FovCalculatorState state)
+        private async Task HandleActionAsync(CalculatorAction action, CancellationToken token)
+        {
+            #region TRACKING
+
+            if (action == CalculatorAction.StartTracking)
+            {
+                _fovCalculator.Track(true, false);
+            }
+            if (action == CalculatorAction.StartTrackingPrecise)
+            {
+                _fovCalculator.Track(true, true);
+            }
+            if (action == CalculatorAction.Stop)
+            {
+                _fovCalculator.Track(false);
+            }
+
+            #endregion
+
+            #region CHANGE MODE
+
+            if (action == CalculatorAction.Disable)
+            {
+                _fovCalculator.ChangeMode(FovCalculatorMode.Disabled);
+            }
+            if (action == CalculatorAction.Capture360)
+            {
+                _fovCalculator.ChangeMode(FovCalculatorMode.Capture360);
+            }
+            if (action == CalculatorAction.CaptureFov)
+            {
+                _fovCalculator.ChangeMode(FovCalculatorMode.CaptureFov);
+            }
+
+            #endregion
+
+            #region USE PRESET
+
+            if (action == CalculatorAction.UsePresetSens)
+            {
+                _fovCalculator.UsePresetSens();
+            }
+            if (action == CalculatorAction.UsePresetFov)
+            {
+                _fovCalculator.UsePresetFov();
+            }
+
+            #endregion
+
+            #region MOVE LEFT
+
+            if (action == CalculatorAction.MoveLeft)
+            {
+                var state = _fovCalculator.State;
+                var stateDeltaAbs = FovCalculatorUtils.GetPoints(state);
+
+                if (state.Tracking == false)
+                {
+                    await _movementManager.MoveByOffsetAsync(-stateDeltaAbs, 0, token);
+                }
+            }
+            if (action == CalculatorAction.MoveRightBy1)
+            {
+                await _movementManager.MoveByOffsetAsync(1, 0, token);
+            }
+
+            #endregion
+
+            #region MOVE RIGHT
+
+            if (action == CalculatorAction.MoveRight)
+            {
+                var state = _fovCalculator.State;
+                var stateDeltaAbs = FovCalculatorUtils.GetPoints(state);
+
+                if (state.Tracking == false)
+                {
+                    await _movementManager.MoveByOffsetAsync(stateDeltaAbs, 0, token);
+                }
+            }
+            if (action == CalculatorAction.MoveLeftBy1)
+            {
+                await _movementManager.MoveByOffsetAsync(-1, 0, token);
+            }
+
+            #endregion
+        }
+
+        private ValueTask DrawStateAsync(FovCalculatorState state, CancellationToken token)
         {
             var stateStats = FovCalculatorUtils.CalculateStatistics(state);
 
             DrawPane(60, 0, pane =>
             {
-                pane.DrawLine("# HOT KEYS");
-                pane.DrawLine("[numpad 0]", "disable");
-                pane.DrawLine("[numpad 1]", "set 360 points");
-                pane.DrawLine("[numpad 2]", "set FOV points");
-                pane.DrawLine("[numpad 4]", "move left");
-                pane.DrawLine("[numpad 5]", "use preset sens");
-                pane.DrawLine("[numpad 6]", "move right");
-                pane.DrawLine("[numpad 7]", "move left by 1");
-                pane.DrawLine("[numpad 8]", "use preset fov");
-                pane.DrawLine("[numpad 9]", "move right by 1");
-                pane.DrawLine("[ctrl]", "set points");
-                pane.DrawLine("[shift] + [ctrl]", "tune points");
+                pane.DrawLine("# PRESET-BASED FOV");
+                pane.DrawLine("preset view port angle", state.ViewPortDeg);
+                pane.DrawLine("fov angle", stateStats.FovDegAngleBased);
+                pane.DrawLine("fov points", stateStats.PointsPerFovDegAngleBased);
+            });
+
+            DrawPane(60, 5, pane =>
+            {
+                pane.DrawLine("# PRESET-BASED SENSITIVITY");
+                pane.DrawLine("preset view port points", state.PointsPerViewPortDeg);
+                pane.DrawLine("fov points", stateStats.PointsPerFovDegSensBased);
+                pane.DrawLine("360 deg points", stateStats.PointsPer360DegSensBased);
+                pane.DrawLine("1 deg points", stateStats.PointsPer1DegSensBased);
             });
 
             DrawPane(0, 0, pane =>
@@ -251,27 +259,14 @@ namespace FovCalibrationTool.CalibrationTool
                 pane.DrawLine("view port width", stateStats.ViewPortWidth);
             });
 
-            DrawPane(0, 14, pane =>
-            {
-                pane.DrawLine("# PRESET-BASED FOV");
-                pane.DrawLine("preset view port angle", state.ViewPortDeg);
-                pane.DrawLine("fov angle", stateStats.FovDegAngleBased);
-                pane.DrawLine("fov points", stateStats.PointsPerFovDegAngleBased);
-            });
-
-            DrawPane(0, 19, pane =>
-            {
-                pane.DrawLine("# PRESET-BASED SENSITIVITY");
-                pane.DrawLine("preset view port points", state.PointsPerViewPortDeg);
-                pane.DrawLine("fov points", stateStats.PointsPerFovDegSensBased);
-                pane.DrawLine("360 deg points", stateStats.PointsPer360DegSensBased);
-                pane.DrawLine("1 deg points", stateStats.PointsPer1DegSensBased);
-            });
+            return ValueTask.CompletedTask;
         }
 
         private static void DrawPane(int x, int y, Action<ConsolePane> paneDrawAction)
         {
-            using (var pane = new ConsolePane(x, y))
+            using var pane = new ConsolePane(x, y);
+
+            if (paneDrawAction != null)
             {
                 paneDrawAction(pane);
             }

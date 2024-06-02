@@ -9,7 +9,7 @@ namespace FovCalibrationTool.FovCalculator
             RestoreState(state);
         }
 
-        public void UseEstiamtedSens()
+        public void UsePresetSens()
         {
             var statePrevious = State;
 
@@ -31,7 +31,7 @@ namespace FovCalibrationTool.FovCalculator
             UpdateState(state);
         }
 
-        public void UseEstiamtedAngle()
+        public void UsePresetFov()
         {
             var statePrevious = State;
 

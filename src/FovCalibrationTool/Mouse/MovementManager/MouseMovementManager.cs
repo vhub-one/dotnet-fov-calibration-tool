@@ -8,7 +8,7 @@ namespace FovCalibrationTool.Mouse.MovementManager
 
         private readonly InputSimulator _inputSimulator = new();
 
-        public void MoveByOffset(int deltaX, int deltaY)
+        public async ValueTask MoveByOffsetAsync(int deltaX, int deltaY, CancellationToken token)
         {
             while (true)
             {
@@ -25,12 +25,12 @@ namespace FovCalibrationTool.Mouse.MovementManager
                 deltaY -= offsetY;
 
                 _inputSimulator.Mouse.MoveMouseBy(offsetX, offsetY);
-                
-                Thread.Sleep(50);
+
+                await Task.Delay(50, token);
             }
         }
 
-        private int GetMaxDelta(int delta)
+        private static int GetMaxDelta(int delta)
         {
             if (delta > DELTA_MAX)
             {

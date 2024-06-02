@@ -16,5 +16,21 @@
     "ViewPortObserveDeg": 18,
     "ViewPortDeg": 40.88,
     "ViewPortPoints": 1068.84
+  },
+  "CalcualtorActionOptions": {
+    "HotKeys": {
+      "Disable": "Alt + D0",
+      "Capture360": "Alt + D1",
+      "CaptureFov": "Alt + D2",
+      "UsePresetSens": "Alt + S",
+      "UsePresetFov": "Alt + F",
+      "MoveLeft": "Left",
+      "MoveLeftBy1": "Alt + Left",
+      "MoveRight": "Right",
+      "MoveRightBy1": "Alt + Right",
+      "StartTracking": "Control",
+      "StartTrackingPrecise": "Shift + Control",
+      "Stop": "Escape"
+    }
   }
 }
