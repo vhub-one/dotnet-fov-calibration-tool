@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyName>fovium</AssemblyName>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 

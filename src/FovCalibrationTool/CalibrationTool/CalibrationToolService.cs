@@ -36,13 +36,42 @@ namespace FovCalibrationTool.CalibrationTool
                 throw new InvalidOperationException();
             }
 
-            var fovCalculatorState = FovCalculatorState.CreateDefault(
-                options.DisplayType,
-                options.FovWidth,
-                options.DisplayDistance,
-                options.ViewPortObserveDeg,
-                options.ViewPortDeg,
-                options.ViewPortPoints
+            var environment = options.Environment;
+            var user = options.User;
+
+            if (environment == null || user == null)
+            {
+                throw new InvalidOperationException();
+            }
+
+            var pointsPer360Deg = double.NaN;
+            var pointsPerFovDeg = double.NaN;
+
+            var game = options.Game;
+
+            if (game != null)
+            {
+                var gameStats = FovCalculatorUtils.CalculateGameStats(
+                    environment,
+                    user,
+                    game
+                );
+
+                pointsPer360Deg = gameStats.PointsPer360Deg;
+                pointsPerFovDeg = gameStats.PointsPerFovDeg;
+            }
+
+            var fovCalculatorState = new FovCalculatorState(
+                Tracking: false,
+                Mode: FovCalculatorMode.Disabled,
+                DisplayType: environment.DisplayType,
+                DisplayDistance: environment.DisplayDistance,
+                FovWidth: environment.DisplayWidth,
+                ViewPortDeg: user.ViewPortDeg,
+                ViewPortObserveDeg: user.ViewPortObserveDeg,
+                PointsPer360Deg: pointsPer360Deg,
+                PointsPerFovDeg: pointsPerFovDeg,
+                PointsPerViewPortDeg: user.ViewPortPoints
             );
 
             _fovCalculator = new FovCalculatorViewModel(fovCalculatorState);
@@ -167,7 +196,7 @@ namespace FovCalibrationTool.CalibrationTool
             if (action == CalculatorAction.MoveLeft)
             {
                 var state = _fovCalculator.State;
-                var stateDeltaAbs = FovCalculatorUtils.GetPoints(state);
+                var stateDeltaAbs = GetMoveDelta(state);
 
                 if (state.Tracking == false)
                 {
@@ -186,7 +215,7 @@ namespace FovCalibrationTool.CalibrationTool
             if (action == CalculatorAction.MoveRight)
             {
                 var state = _fovCalculator.State;
-                var stateDeltaAbs = FovCalculatorUtils.GetPoints(state);
+                var stateDeltaAbs = GetMoveDelta(state);
 
                 if (state.Tracking == false)
                 {
@@ -201,22 +230,49 @@ namespace FovCalibrationTool.CalibrationTool
             #endregion
         }
 
-        private ValueTask DrawStateAsync(FovCalculatorState state, CancellationToken token)
+        private static int GetMoveDelta(FovCalculatorState state)
         {
-            var stateStats = FovCalculatorUtils.CalculateStatistics(state);
+            double points = 0;
+
+            if (state.Mode == FovCalculatorMode.Capture360)
+            {
+                points = state.PointsPer360Deg;
+            }
+            if (state.Mode == FovCalculatorMode.CaptureFov)
+            {
+                points = state.PointsPerFovDeg;
+            }
+
+            if (double.IsFinite(points))
+            {
+                return (int)Math.Round(Math.Abs(points));
+            }
+
+            return 0;
+        }
+
+        private static ValueTask DrawStateAsync(FovCalculatorState state, CancellationToken token)
+        {
+            var stateStats = FovCalculatorUtils.CalculateFovStats(state);
 
             DrawPane(60, 0, pane =>
             {
-                pane.DrawLine("# PRESET-BASED FOV");
-                pane.DrawLine("preset view port angle", state.ViewPortDeg);
-                pane.DrawLine("fov angle", stateStats.FovDegAngleBased);
-                pane.DrawLine("fov points", stateStats.PointsPerFovDegAngleBased);
+                pane.DrawLine("# PRESET");
+                pane.DrawLine("view port points", state.PointsPerViewPortDeg);
+                pane.DrawLine("view port angle", state.ViewPortDeg);
+                pane.DrawLine("view port width", stateStats.ViewPortWidth);
             });
 
             DrawPane(60, 5, pane =>
             {
+                pane.DrawLine("# PRESET-BASED FOV");
+                pane.DrawLine("fov points", stateStats.PointsPerFovDegAngleBased);
+                pane.DrawLine("fov angle", stateStats.FovDegAngleBased);
+            });
+
+            DrawPane(60, 9, pane =>
+            {
                 pane.DrawLine("# PRESET-BASED SENSITIVITY");
-                pane.DrawLine("preset view port points", state.PointsPerViewPortDeg);
                 pane.DrawLine("fov points", stateStats.PointsPerFovDegSensBased);
                 pane.DrawLine("360 deg points", stateStats.PointsPer360DegSensBased);
                 pane.DrawLine("1 deg points", stateStats.PointsPer1DegSensBased);
@@ -231,7 +287,7 @@ namespace FovCalibrationTool.CalibrationTool
                     pane.HighlightPane();
                 }
 
-                pane.DrawHeader("#1 SET 360 DEG", stateActive);
+                pane.DrawHeader("# GAME 360 DEG", stateActive);
                 pane.DrawLine("360 deg points", stateStats.PointsPer360Deg);
                 pane.DrawLine("1 deg points", stateStats.PointsPer1Deg);
             });
@@ -245,7 +301,7 @@ namespace FovCalibrationTool.CalibrationTool
                     pane.HighlightPane();
                 }
 
-                pane.DrawHeader("#2 SET FOV", stateActive);
+                pane.DrawHeader("# GAME FOV", stateActive);
                 pane.DrawLine("fov points", stateStats.PointsPerFovDeg);
                 pane.DrawLine("fov angle", stateStats.FovDeg);
                 pane.DrawLine("fov width", state.FovWidth);
@@ -253,10 +309,9 @@ namespace FovCalibrationTool.CalibrationTool
 
             DrawPane(0, 9, pane =>
             {
-                pane.DrawLine("# PRESET");
+                pane.DrawLine("# GAME STATS");
                 pane.DrawLine("view port points", stateStats.PointsPerViewPortDeg);
                 pane.DrawLine("view port angle", stateStats.ViewPortDeg);
-                pane.DrawLine("view port width", stateStats.ViewPortWidth);
             });
 
             return ValueTask.CompletedTask;

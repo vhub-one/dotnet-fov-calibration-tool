@@ -10,12 +10,20 @@
     "PollPeriod": 5
   },
   "CalibrationToolOptions": {
-    "DisplayType": "Flat",
-    "DisplayDistance": 600,
-    "FovWidth": 510,
-    "ViewPortObserveDeg": 18,
-    "ViewPortDeg": 40.88,
-    "ViewPortPoints": 1068.84
+    "Environment": {
+      "DisplayType": "Flat",
+      "DisplayDistance": 600,
+      "DisplayWidth": 510
+    },
+    "User": {
+      "ViewPortObserveDeg": 18,
+      "ViewPortDeg": 40.88,
+      "ViewPortPoints": 1068.84
+    },
+    "Game": {
+      "ViewPortDeg": 40.88,
+      "ViewPortPoints": 1068.84
+    }
   },
   "CalcualtorActionOptions": {
     "HotKeys": {

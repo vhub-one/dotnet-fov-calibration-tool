@@ -1,23 +1,34 @@
-﻿
+﻿using FovCalibrationTool.CalibrationTool;
+
 namespace FovCalibrationTool.FovCalculator
 {
     public static class FovCalculatorUtils
     {
-        public static int GetPoints(FovCalculatorState state)
+        public static GameStatistics CalculateGameStats(EnvironmentOptions environment, UserOptions user, GameOptions game)
         {
-            if (state.Mode == FovCalculatorMode.Capture360)
+            var pointsPer360Deg = double.NaN;
+            var pointsPerFovDeg = double.NaN;
+
+            var viewPortDeg = game.ViewPortDeg;
+
+            if (viewPortDeg > 0)
             {
-                return CalculateAbsolutePoints(state.PointsPer360Deg);
-            }
-            if (state.Mode == FovCalculatorMode.CaptureFov)
-            {
-                return CalculateAbsolutePoints(state.PointsPerFovDeg);
+                var viewPortWidth = CalculateViewPortWidth(environment.DisplayType, environment.DisplayDistance, user.ViewPortObserveDeg);
+
+                var fovDeg = CalculateTargetAngle(viewPortDeg, viewPortWidth, environment.DisplayWidth);
+
+                pointsPer360Deg = 360 / viewPortDeg * game.ViewPortPoints;
+                pointsPerFovDeg = fovDeg / viewPortDeg * game.ViewPortPoints;
             }
 
-            return 0;
+            return new GameStatistics
+            {
+                PointsPer360Deg = pointsPer360Deg,
+                PointsPerFovDeg = pointsPerFovDeg
+            };
         }
 
-        public static FovStatistics CalculateStatistics(FovCalculatorState state)
+        public static FovStatistics CalculateFovStats(FovCalculatorState state)
         {
             var pointsPer360Deg = Math.Abs(state.PointsPer360Deg);
             var pointsPerFovDeg = Math.Abs(state.PointsPerFovDeg);
@@ -31,7 +42,7 @@ namespace FovCalibrationTool.FovCalculator
                 fovDeg = pointsPerFovDeg / pointsPer1Deg;
             }
 
-            var viewPortWidth = CalculateViewPortWidth(state);
+            var viewPortWidth = CalculateViewPortWidth(state.DisplayType, state.DisplayDistance, state.ViewPortObserveDeg);
             var viewPortDeg = CalculateTargetAngle(fovDeg, state.FovWidth, viewPortWidth);
 
             var fovDegAngleBased = CalculateTargetAngle(state.ViewPortDeg, viewPortWidth, state.FovWidth);
@@ -79,18 +90,18 @@ namespace FovCalibrationTool.FovCalculator
             return 0;
         }
 
-        private static double CalculateViewPortWidth(FovCalculatorState state)
+        private static double CalculateViewPortWidth(DisplayType displayType, double displayDistance, double viewPortObserveDeg)
         {
-            var viewPortRad = state.ViewPortObserveDeg * Math.PI / 180;
+            var viewPortRad = viewPortObserveDeg * Math.PI / 180;
 
-            if (state.DisplayType == DisplayType.Flat)
+            if (displayType == DisplayType.Flat)
             {
-                return Math.Tan(viewPortRad / 2) * 2 * state.DisplayDistance;
+                return Math.Tan(viewPortRad / 2) * 2 * displayDistance;
             }
 
-            if (state.DisplayType == DisplayType.Curved)
+            if (displayType == DisplayType.Curved)
             {
-                return viewPortRad * state.DisplayDistance;
+                return viewPortRad * displayDistance;
             }
 
             throw new InvalidOperationException();

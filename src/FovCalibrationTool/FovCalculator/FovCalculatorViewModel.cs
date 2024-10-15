@@ -13,7 +13,7 @@ namespace FovCalibrationTool.FovCalculator
         {
             var statePrevious = State;
 
-            var stateStatistics = FovCalculatorUtils.CalculateStatistics(statePrevious);
+            var stateStatistics = FovCalculatorUtils.CalculateFovStats(statePrevious);
 
             var state = new FovCalculatorState(
                 statePrevious.Tracking,
@@ -35,7 +35,7 @@ namespace FovCalibrationTool.FovCalculator
         {
             var statePrevious = State;
 
-            var stateStatistics = FovCalculatorUtils.CalculateStatistics(statePrevious);
+            var stateStatistics = FovCalculatorUtils.CalculateFovStats(statePrevious);
 
             var state = new FovCalculatorState(
                 statePrevious.Tracking,
