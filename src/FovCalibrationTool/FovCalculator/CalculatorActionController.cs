@@ -8,9 +8,9 @@ namespace FovCalibrationTool.FovCalculator
     public class CalculatorActionController
     {
         private readonly HotKeysTracker _hotKeysTracker;
-        private readonly IOptions<CalcualtorActionOptions> _optionsAccessor;
+        private readonly IOptions<CalculatorActionOptions> _optionsAccessor;
 
-        public CalculatorActionController(HotKeysTracker hotKeysTracker, IOptions<CalcualtorActionOptions> optionsAccessor)
+        public CalculatorActionController(HotKeysTracker hotKeysTracker, IOptions<CalculatorActionOptions> optionsAccessor)
         {
             _hotKeysTracker = hotKeysTracker;
             _optionsAccessor = optionsAccessor;

@@ -1,4 +1,5 @@
-﻿namespace FovCalibrationTool.FovCalculator
+﻿
+namespace FovCalibrationTool.FovCalculator
 {
     public enum CalculatorAction
     {

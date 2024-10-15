@@ -1,6 +1,7 @@
-﻿namespace FovCalibrationTool.FovCalculator
+﻿
+namespace FovCalibrationTool.FovCalculator
 {
-    public class CalcualtorActionOptions
+    public class CalculatorActionOptions
     {
         public Dictionary<CalculatorAction, string> HotKeys { get; set; }
     }

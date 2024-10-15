@@ -46,7 +46,7 @@ namespace FovCalibrationTool
 
                 #region [CalculatorActionController]
 
-                services.ConfigureByName<CalcualtorActionOptions>();
+                services.ConfigureByName<CalculatorActionOptions>();
                 services.AddSingleton<CalculatorActionController>();
 
                 #endregion

@@ -20,12 +20,12 @@
       "ViewPortDeg": 40.88,
       "ViewPortPoints": 1068.84
     },
-    "Game": {
+    "GamePreset": {
       "ViewPortDeg": 40.88,
       "ViewPortPoints": 1068.84
     }
   },
-  "CalcualtorActionOptions": {
+  "CalculatorActionOptions": {
     "HotKeys": {
       "Disable": "Alt + D0",
       "Capture360": "Alt + D1",

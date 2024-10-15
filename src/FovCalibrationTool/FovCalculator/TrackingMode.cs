@@ -1,7 +1,7 @@
 ﻿
 namespace FovCalibrationTool.FovCalculator
 {
-    public enum FovCalculatorMode
+    public enum TrackingMode
     {
         Disabled,
         Capture360,
