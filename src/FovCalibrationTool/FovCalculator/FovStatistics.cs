@@ -6,17 +6,17 @@ namespace FovCalibrationTool.FovCalculator
         public double FovDeg { get; set; }
         public double FovDegAngleBased { get; set; }
 
-        public double PointsPer1Deg { get; set; }
-        public double PointsPer360Deg { get; set; }
-        public double PointsPerFovDeg { get; set; }
-        public double PointsPerViewPortDeg { get; set; }
+        public double MoveDistancePer1Deg { get; set; }
+        public double MoveDistancePer360Deg { get; set; }
+        public double MoveDistancePerFovDeg { get; set; }
+        public double MoveDistancePerViewPortDeg { get; set; }
 
         public double ViewPortDeg { get; set; }
         public double ViewPortWidth { get; set; }
 
-        public double PointsPer1DegSensBased { get; set; }
-        public double PointsPer360DegSensBased { get; set; }
-        public double PointsPerFovDegSensBased { get; set; }
-        public double PointsPerFovDegAngleBased { get; set; }
+        public double MoveDistancePer1DegSensBased { get; set; }
+        public double MoveDistancePer360DegSensBased { get; set; }
+        public double MoveDistancePerFovDegSensBased { get; set; }
+        public double MoveDistancePerFovDegAngleBased { get; set; }
     }
 }

@@ -6,6 +6,6 @@ namespace FovCalibrationTool.CalibrationTool
     {
         public EnvironmentOptions Environment { get; set; }
         public UserOptions User { get; set; }
-        public GamePresetOptions GamePreset { get; set; }
+        public PresetOptions Preset { get; set; }
     }
 }

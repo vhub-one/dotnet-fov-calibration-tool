@@ -1,5 +1,5 @@
 ﻿
 namespace FovCalibrationTool.FovCalculator
 {
-    public record UserOptions(double ViewPortObserveDeg, double ViewPortDeg, double ViewPortPoints);
+    public record UserOptions(double ViewPortObserveDeg, double ViewPortDeg, double ViewPortMoveDistance);
 }

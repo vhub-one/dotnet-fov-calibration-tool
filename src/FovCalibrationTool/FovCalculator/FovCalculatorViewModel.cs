@@ -4,13 +4,24 @@ namespace FovCalibrationTool.FovCalculator
 {
     public class FovCalculatorViewModel : ViewModel<CalculatorState>
     {
-        public FovCalculatorViewModel(EnvironmentOptions environment, UserOptions user, GameOptions game)
+        public FovCalculatorViewModel(EnvironmentOptions environment, UserOptions user, PresetOptions preset)
         {
+            var presetState = PresetState.Default;
+
+            if (preset != null)
+            {
+                presetState = FovCalculatorUtils.CalculatePresetState(
+                    environment,
+                    user,
+                    preset
+                );
+            }
+
             var state = new CalculatorState(
-                TrackingState.Default,
                 environment,
                 user,
-                game
+                TrackingState.Default,
+                presetState
             );
 
             RestoreState(state);
@@ -20,22 +31,22 @@ namespace FovCalibrationTool.FovCalculator
         {
             var statePrevious = State;
 
-            var stateStatistics = FovCalculatorUtils.CalculateStatistics(
+            var stateStatistics = FovCalculatorUtils.CalculateFovStatistics(
                 statePrevious.Environment,
                 statePrevious.User,
-                statePrevious.Game
+                statePrevious.PresetState
             );
 
-            var game = new GameOptions(
-                stateStatistics.PointsPer360DegSensBased,
-                stateStatistics.PointsPerFovDegSensBased
+            var presetState = new PresetState(
+                stateStatistics.MoveDistancePer360DegSensBased,
+                stateStatistics.MoveDistancePerFovDegSensBased
             );
 
             var state = new CalculatorState(
-                statePrevious.Tracking,
                 statePrevious.Environment,
                 statePrevious.User,
-                game
+                statePrevious.TrackingState,
+                presetState
             );
 
             UpdateState(state);
@@ -45,22 +56,22 @@ namespace FovCalibrationTool.FovCalculator
         {
             var statePrevious = State;
 
-            var stateStatistics = FovCalculatorUtils.CalculateStatistics(
+            var stateStatistics = FovCalculatorUtils.CalculateFovStatistics(
                 statePrevious.Environment,
                 statePrevious.User,
-                statePrevious.Game
+                statePrevious.PresetState
             );
 
-            var game = new GameOptions(
-                stateStatistics.PointsPer360Deg,
-                stateStatistics.PointsPerFovDegAngleBased
+            var presetState = new PresetState(
+                stateStatistics.MoveDistancePer360Deg,
+                stateStatistics.MoveDistancePerFovDegAngleBased
             );
 
             var state = new CalculatorState(
-                statePrevious.Tracking,
                 statePrevious.Environment,
                 statePrevious.User,
-                game
+                statePrevious.TrackingState,
+                presetState
             );
 
             UpdateState(state);
@@ -70,23 +81,23 @@ namespace FovCalibrationTool.FovCalculator
         {
             var statePrevious = State;
 
-            var trackingPrevious = statePrevious.Tracking;
+            var trackingStatePrevious = statePrevious.TrackingState;
 
-            if (trackingPrevious.Mode == mode)
+            if (trackingStatePrevious.Mode == mode)
             {
                 return;
             }
 
-            var tracking = new TrackingState(
-                trackingPrevious.Active,
+            var trackingState = new TrackingState(
+                trackingStatePrevious.Active,
                 mode
             );
 
             var state = new CalculatorState(
-                tracking,
                 statePrevious.Environment,
                 statePrevious.User,
-                statePrevious.Game
+                trackingState,
+                statePrevious.PresetState
             );
 
             UpdateState(state);
@@ -96,20 +107,20 @@ namespace FovCalibrationTool.FovCalculator
         {
             var statePrevious = State;
 
-            var trackingPrevious = statePrevious.Tracking;
+            var trackingStatePrevious = statePrevious.TrackingState;
 
-            if (trackingPrevious.Active == active ||
-                trackingPrevious.Mode == TrackingMode.Disabled)
+            if (trackingStatePrevious.Active == active ||
+                trackingStatePrevious.Mode == TrackingMode.Disabled)
             {
                 return;
             }
 
-            var tracking = new TrackingState(
+            var trackingState = new TrackingState(
                 active,
-                trackingPrevious.Mode
+                trackingStatePrevious.Mode
             );
 
-            var gamePrevious = statePrevious.Game;
+            var presetStatePrevious = statePrevious.PresetState;
 
             if (active)
             {
@@ -123,38 +134,38 @@ namespace FovCalibrationTool.FovCalculator
                     return 0;
                 }
 
-                if (tracking.Mode == TrackingMode.Capture360)
+                if (trackingState.Mode == TrackingMode.Capture360)
                 {
-                    var game = new GameOptions(
+                    var presetState = new PresetState(
                         GetInitialPoints(
-                            gamePrevious.PointsPer360Deg
+                            presetStatePrevious.MoveDistancePer360Deg
                         ),
-                        gamePrevious.PointsPerFovDeg
+                        presetStatePrevious.MoveDistancePerFovDeg
                     );
 
                     var state = new CalculatorState(
-                        tracking,
                         statePrevious.Environment,
                         statePrevious.User,
-                        game
+                        trackingState,
+                        presetState
                     );
 
                     UpdateState(state);
                 }
-                if (tracking.Mode == TrackingMode.CaptureFov)
+                if (trackingState.Mode == TrackingMode.CaptureFov)
                 {
-                    var game = new GameOptions(
-                        gamePrevious.PointsPer360Deg,
+                    var presetState = new PresetState(
+                        presetStatePrevious.MoveDistancePer360Deg,
                         GetInitialPoints(
-                            gamePrevious.PointsPerFovDeg
+                            presetStatePrevious.MoveDistancePerFovDeg
                         )
                     );
 
                     var state = new CalculatorState(
-                        tracking,
                         statePrevious.Environment,
                         statePrevious.User,
-                        game
+                        trackingState,
+                        presetState
                     );
 
                     UpdateState(state);
@@ -163,59 +174,59 @@ namespace FovCalibrationTool.FovCalculator
             else
             {
                 var state = new CalculatorState(
-                    tracking,
                     statePrevious.Environment,
                     statePrevious.User,
-                    gamePrevious
+                    trackingState,
+                    presetStatePrevious
                 );
 
                 UpdateState(state);
             }
         }
 
-        public void MoveMouse(int pointsDelta)
+        public void MoveMouse(double moveDistance)
         {
             var statePrevious = State;
 
-            var trackingPrevious = statePrevious.Tracking;
+            var trackingStatePrevious = statePrevious.TrackingState;
 
-            if (trackingPrevious.Active == false ||
-                trackingPrevious.Mode == TrackingMode.Disabled)
+            if (trackingStatePrevious.Active == false ||
+                trackingStatePrevious.Mode == TrackingMode.Disabled)
             {
                 return;
             }
 
-            var gamePrevious = statePrevious.Game;
+            var presetStatePrevious = statePrevious.PresetState;
 
-            if (trackingPrevious.Mode == TrackingMode.Capture360)
+            if (trackingStatePrevious.Mode == TrackingMode.Capture360)
             {
-                var game = new GameOptions(
-                    gamePrevious.PointsPer360Deg + pointsDelta,
-                    gamePrevious.PointsPerFovDeg
+                var presetState = new PresetState(
+                    presetStatePrevious.MoveDistancePer360Deg + moveDistance,
+                    presetStatePrevious.MoveDistancePerFovDeg
                 );
 
                 var state = new CalculatorState(
-                    trackingPrevious,
                     statePrevious.Environment,
                     statePrevious.User,
-                    game
+                    trackingStatePrevious,
+                    presetState
                 );
 
                 UpdateState(state);
             }
 
-            if (trackingPrevious.Mode == TrackingMode.CaptureFov)
+            if (trackingStatePrevious.Mode == TrackingMode.CaptureFov)
             {
-                var game = new GameOptions(
-                    gamePrevious.PointsPer360Deg,
-                    gamePrevious.PointsPerFovDeg + pointsDelta
+                var presetState = new PresetState(
+                    presetStatePrevious.MoveDistancePer360Deg,
+                    presetStatePrevious.MoveDistancePerFovDeg + moveDistance
                 );
 
                 var state = new CalculatorState(
-                    trackingPrevious,
                     statePrevious.Environment,
                     statePrevious.User,
-                    game
+                    trackingStatePrevious,
+                    presetState
                 );
 
                 UpdateState(state);

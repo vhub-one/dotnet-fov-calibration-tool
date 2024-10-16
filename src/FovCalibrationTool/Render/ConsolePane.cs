@@ -5,7 +5,7 @@
         private readonly int _x;
         private readonly int _y;
 
-        private bool _highlightPane;
+        private bool _highlight;
         private int _yOffset = 0;
 
         public ConsolePane(int x, int y)
@@ -14,19 +14,19 @@
             _y = y;
         }
 
-        public void HighlightPane()
+        public void HighlightNext(ConsoleColor background = ConsoleColor.Red, ConsoleColor foreground = ConsoleColor.Black)
         {
-            _highlightPane = true;
+            _highlight = true;
 
-            Console.BackgroundColor = ConsoleColor.Red;
-            Console.ForegroundColor = ConsoleColor.Black;
+            Console.BackgroundColor = background;
+            Console.ForegroundColor = foreground;
         }
 
         public void DrawHeader(string caption, bool highlightRow = false)
         {
             if (highlightRow)
             {
-                if (_highlightPane == false)
+                if (_highlight == false)
                 {
                     Console.BackgroundColor = ConsoleColor.Green;
                     Console.ForegroundColor = ConsoleColor.Black;
@@ -37,7 +37,7 @@
 
             if (highlightRow)
             {
-                if (_highlightPane == false)
+                if (_highlight == false)
                 {
                     Console.BackgroundColor = ConsoleColor.Black;
                     Console.ForegroundColor = ConsoleColor.Gray;
@@ -91,7 +91,7 @@
 
         public void Dispose()
         {
-            if (_highlightPane)
+            if (_highlight)
             {
                 Console.BackgroundColor = ConsoleColor.Black;
                 Console.ForegroundColor = ConsoleColor.Gray;

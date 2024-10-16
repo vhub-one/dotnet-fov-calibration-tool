@@ -38,28 +38,17 @@ namespace FovCalibrationTool.CalibrationTool
 
             var environment = options.Environment;
             var user = options.User;
+            var preset = options.Preset;
 
             if (environment == null || user == null)
             {
                 throw new InvalidOperationException();
             }
 
-            var game = GameOptions.Default;
-            var gamePreset = options.GamePreset;
-
-            if (gamePreset != null)
-            {
-                game = FovCalculatorUtils.CalculateOptions(
-                    environment,
-                    user,
-                    gamePreset
-                );
-            }
-
             _fovCalculator = new FovCalculatorViewModel(
                 environment,
                 user,
-                game
+                preset
             );
 
             return Task.WhenAll(
@@ -119,9 +108,16 @@ namespace FovCalibrationTool.CalibrationTool
             {
                 var mouseMoveStream = _movementTracker.Track(token);
 
-                foreach (var mouseMove in mouseMoveStream)
+                foreach (var movement in mouseMoveStream)
                 {
-                    _fovCalculator.MoveMouse(mouseMove.DeltaX);
+                    var state = _fovCalculator.State;
+
+                    var moveDistance = FovCalculatorUtils.CalculateMoveDistance(
+                        movement.DeltaX,
+                        state.Environment.MoveDpi
+                    );
+
+                    _fovCalculator.MoveMouse(moveDistance);
                 }
             }
 
@@ -183,12 +179,11 @@ namespace FovCalibrationTool.CalibrationTool
             {
                 var state = _fovCalculator.State;
 
-                var tracking = state.Tracking;
-                var trackingDelta = GetMoveDelta(tracking, state.Game);
+                var trackingMovePoints = GetMovePoints(state);
 
-                if (tracking.Active == false)
+                if (trackingMovePoints != 0)
                 {
-                    await _movementManager.MoveByOffsetAsync(-trackingDelta, 0, token);
+                    await _movementManager.MoveByOffsetAsync(-trackingMovePoints, 0, token);
                 }
             }
             if (action == CalculatorAction.MoveRightBy1)
@@ -204,12 +199,11 @@ namespace FovCalibrationTool.CalibrationTool
             {
                 var state = _fovCalculator.State;
 
-                var tracking = state.Tracking;
-                var trackingDelta = GetMoveDelta(tracking, state.Game);
+                var trackingMovePoints = GetMovePoints(state);
 
-                if (tracking.Active == false)
+                if (trackingMovePoints != 0)
                 {
-                    await _movementManager.MoveByOffsetAsync(trackingDelta, 0, token);
+                    await _movementManager.MoveByOffsetAsync(trackingMovePoints, 0, token);
                 }
             }
             if (action == CalculatorAction.MoveLeftBy1)
@@ -220,22 +214,27 @@ namespace FovCalibrationTool.CalibrationTool
             #endregion
         }
 
-        private static int GetMoveDelta(TrackingState tracking, GameOptions gameStats)
+        private static int GetMovePoints(CalculatorState state)
         {
-            double points = 0;
+            var tracking = state.TrackingState;
 
-            if (tracking.Mode == TrackingMode.Capture360)
+            if (tracking.Active == false)
             {
-                points = gameStats.PointsPer360Deg;
-            }
-            if (tracking.Mode == TrackingMode.CaptureFov)
-            {
-                points = gameStats.PointsPerFovDeg;
-            }
+                var moveDistance = 0d;
 
-            if (double.IsFinite(points))
-            {
-                return (int)Math.Round(Math.Abs(points));
+                if (tracking.Mode == TrackingMode.Capture360)
+                {
+                    moveDistance = state.PresetState.MoveDistancePer360Deg;
+                }
+                if (tracking.Mode == TrackingMode.CaptureFov)
+                {
+                    moveDistance = state.PresetState.MoveDistancePerFovDeg;
+                }
+
+                if (double.IsFinite(moveDistance))
+                {
+                    return FovCalculatorUtils.CalculateMovePoints(moveDistance, state.Environment.MoveDpi);
+                }
             }
 
             return 0;
@@ -243,16 +242,16 @@ namespace FovCalibrationTool.CalibrationTool
 
         private static ValueTask DrawStateAsync(CalculatorState state, CancellationToken token)
         {
-            var stateStats = FovCalculatorUtils.CalculateStatistics(
+            var stateStats = FovCalculatorUtils.CalculateFovStatistics(
                 state.Environment,
                 state.User,
-                state.Game
+                state.PresetState
             );
 
             DrawPane(60, 0, pane =>
             {
                 pane.DrawLine("# PRESET");
-                pane.DrawLine("view port points", state.User.ViewPortPoints);
+                pane.DrawLine("view port move distance", state.User.ViewPortMoveDistance);
                 pane.DrawLine("view port angle", state.User.ViewPortDeg);
                 pane.DrawLine("view port width", stateStats.ViewPortWidth);
             });
@@ -260,43 +259,44 @@ namespace FovCalibrationTool.CalibrationTool
             DrawPane(60, 5, pane =>
             {
                 pane.DrawLine("# PRESET-BASED FOV");
-                pane.DrawLine("fov points", stateStats.PointsPerFovDegAngleBased);
+                pane.DrawLine("fov move distance", stateStats.MoveDistancePerFovDegAngleBased);
                 pane.DrawLine("fov angle", stateStats.FovDegAngleBased);
             });
 
             DrawPane(60, 9, pane =>
             {
                 pane.DrawLine("# PRESET-BASED SENSITIVITY");
-                pane.DrawLine("fov points", stateStats.PointsPerFovDegSensBased);
-                pane.DrawLine("360 deg points", stateStats.PointsPer360DegSensBased);
-                pane.DrawLine("1 deg points", stateStats.PointsPer1DegSensBased);
+                pane.DrawLine("360 deg move distance", stateStats.MoveDistancePer360DegSensBased);
+                pane.DrawLine("fov move distance", stateStats.MoveDistancePerFovDegSensBased);
             });
 
             DrawPane(0, 0, pane =>
             {
-                var stateActive = state.Tracking.Mode == TrackingMode.Capture360;
+                var trackingState = state.TrackingState;
+                var trackingStateSelected = trackingState.Mode == TrackingMode.Capture360;
 
-                if (stateActive && state.Tracking.Active)
+                if (trackingState.Active && trackingStateSelected)
                 {
-                    pane.HighlightPane();
+                    pane.HighlightNext();
                 }
 
-                pane.DrawHeader("# GAME 360 DEG", stateActive);
-                pane.DrawLine("360 deg points", stateStats.PointsPer360Deg);
-                pane.DrawLine("1 deg points", stateStats.PointsPer1Deg);
+                pane.DrawHeader("# GAME 360 DEG", trackingStateSelected);
+                pane.DrawLine("360 deg move distance", stateStats.MoveDistancePer360Deg);
+                pane.DrawLine("1 deg move distance", stateStats.MoveDistancePer1Deg);
             });
 
             DrawPane(0, 4, pane =>
             {
-                var stateActive = state.Tracking.Mode == TrackingMode.CaptureFov;
+                var trackingState = state.TrackingState;
+                var trackingStateSelected = trackingState.Mode == TrackingMode.CaptureFov;
 
-                if (stateActive && state.Tracking.Active)
+                if (trackingState.Active && trackingStateSelected)
                 {
-                    pane.HighlightPane();
+                    pane.HighlightNext();
                 }
 
-                pane.DrawHeader("# GAME FOV", stateActive);
-                pane.DrawLine("fov points", stateStats.PointsPerFovDeg);
+                pane.DrawHeader("# GAME FOV", trackingStateSelected);
+                pane.DrawLine("fov move distance", stateStats.MoveDistancePerFovDeg);
                 pane.DrawLine("fov angle", stateStats.FovDeg);
                 pane.DrawLine("fov width", state.Environment.DisplayWidth);
             });
@@ -304,7 +304,7 @@ namespace FovCalibrationTool.CalibrationTool
             DrawPane(0, 9, pane =>
             {
                 pane.DrawLine("# GAME STATS");
-                pane.DrawLine("view port points", stateStats.PointsPerViewPortDeg);
+                pane.DrawLine("view port move distance", stateStats.MoveDistancePerViewPortDeg);
                 pane.DrawLine("view port angle", stateStats.ViewPortDeg);
             });
 

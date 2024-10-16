@@ -2,12 +2,27 @@
 {
     public static class FovCalculatorUtils
     {
-        public static GameOptions CalculateOptions(EnvironmentOptions environment, UserOptions user, GamePresetOptions game)
-        {
-            var pointsPer360Deg = double.NaN;
-            var pointsPerFovDeg = double.NaN;
+        private const double DISTANCE_PER_INCH = 25.4;
 
-            var viewPortDeg = game.ViewPortDeg;
+        public static double CalculateMoveDistance(int movePoints, int moveDpi)
+        {
+            return movePoints * DISTANCE_PER_INCH / moveDpi;
+        }
+
+        public static int CalculateMovePoints(double moveDistance, int moveDpi)
+        {
+            var movePoints = Math.Abs(moveDistance / DISTANCE_PER_INCH * moveDpi);
+            var movePointsInt = Math.Round(movePoints);
+
+            return (int)movePointsInt;
+        }
+
+        public static PresetState CalculatePresetState(EnvironmentOptions environment, UserOptions user, PresetOptions preset)
+        {
+            var moveDistancePer360Deg = double.NaN;
+            var moveDistancePerFovDeg = double.NaN;
+
+            var viewPortDeg = preset.ViewPortDeg;
 
             if (viewPortDeg > 0)
             {
@@ -15,25 +30,25 @@
 
                 var fovDeg = CalculateTargetAngle(viewPortDeg, viewPortWidth, environment.DisplayWidth);
 
-                pointsPer360Deg = 360 / viewPortDeg * game.ViewPortPoints;
-                pointsPerFovDeg = fovDeg / viewPortDeg * game.ViewPortPoints;
+                moveDistancePer360Deg = 360 / viewPortDeg * preset.ViewPortMoveDistance;
+                moveDistancePerFovDeg = fovDeg / viewPortDeg * preset.ViewPortMoveDistance;
             }
 
-            return new GameOptions(pointsPer360Deg, pointsPerFovDeg);
+            return new PresetState(moveDistancePer360Deg, moveDistancePerFovDeg);
         }
 
-        public static FovStatistics CalculateStatistics(EnvironmentOptions environment, UserOptions user, GameOptions game)
+        public static FovStatistics CalculateFovStatistics(EnvironmentOptions environment, UserOptions user, PresetState presetState)
         {
-            var pointsPer360Deg = Math.Abs(game.PointsPer360Deg);
-            var pointsPerFovDeg = Math.Abs(game.PointsPerFovDeg);
+            var moveDistancePer360Deg = Math.Abs(presetState.MoveDistancePer360Deg);
+            var moveDistancePerFovDeg = Math.Abs(presetState.MoveDistancePerFovDeg);
 
             var fovDeg = double.NaN;
 
-            var pointsPer1Deg = pointsPer360Deg / 360d;
+            var moveDistancePer1Deg = moveDistancePer360Deg / 360d;
 
-            if (pointsPer1Deg > 0)
+            if (moveDistancePer1Deg > 0)
             {
-                fovDeg = pointsPerFovDeg / pointsPer1Deg;
+                fovDeg = moveDistancePerFovDeg / moveDistancePer1Deg;
             }
 
             var viewPortWidth = CalculateViewPortWidth(environment.DisplayType, environment.DisplayDistance, user.ViewPortObserveDeg);
@@ -41,36 +56,36 @@
 
             var fovDegAngleBased = CalculateTargetAngle(user.ViewPortDeg, viewPortWidth, environment.DisplayWidth);
 
-            var pointsPer1DegSensBased = double.NaN;
+            var moveDistancePer1DegSensBased = double.NaN;
 
             if (viewPortDeg > 0)
             {
-                pointsPer1DegSensBased = user.ViewPortPoints / viewPortDeg;
+                moveDistancePer1DegSensBased = user.ViewPortMoveDistance / viewPortDeg;
             }
 
-            var pointsPerViewPortDeg = pointsPer1Deg * viewPortDeg;
-            var pointsPerFovDegAngleBased = pointsPer1Deg * fovDegAngleBased;
+            var moveDistancePerViewPortDeg = moveDistancePer1Deg * viewPortDeg;
+            var moveDistancePerFovDegAngleBased = moveDistancePer1Deg * fovDegAngleBased;
 
-            var pointsPer360DegSensBased = pointsPer1DegSensBased * 360;
-            var pointsPerFovDegSensBased = pointsPer1DegSensBased * fovDeg;
+            var moveDistancePer360DegSensBased = moveDistancePer1DegSensBased * 360;
+            var moveDistancePerFovDegSensBased = moveDistancePer1DegSensBased * fovDeg;
 
             return new FovStatistics
             {
                 FovDeg = fovDeg,
                 FovDegAngleBased = fovDegAngleBased,
 
-                PointsPer360Deg = pointsPer360Deg,
-                PointsPer1Deg = pointsPer1Deg,
-                PointsPerFovDeg = pointsPerFovDeg,
-                PointsPerViewPortDeg = pointsPerViewPortDeg,
+                MoveDistancePer360Deg = moveDistancePer360Deg,
+                MoveDistancePer1Deg = moveDistancePer1Deg,
+                MoveDistancePerFovDeg = moveDistancePerFovDeg,
+                MoveDistancePerViewPortDeg = moveDistancePerViewPortDeg,
 
                 ViewPortWidth = viewPortWidth,
                 ViewPortDeg = viewPortDeg,
 
-                PointsPer360DegSensBased = pointsPer360DegSensBased,
-                PointsPer1DegSensBased = pointsPer1DegSensBased,
-                PointsPerFovDegSensBased = pointsPerFovDegSensBased,
-                PointsPerFovDegAngleBased = pointsPerFovDegAngleBased,
+                MoveDistancePer360DegSensBased = moveDistancePer360DegSensBased,
+                MoveDistancePer1DegSensBased = moveDistancePer1DegSensBased,
+                MoveDistancePerFovDegSensBased = moveDistancePerFovDegSensBased,
+                MoveDistancePerFovDegAngleBased = moveDistancePerFovDegAngleBased,
             };
         }
 

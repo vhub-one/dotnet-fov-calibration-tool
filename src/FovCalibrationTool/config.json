@@ -13,16 +13,17 @@
     "Environment": {
       "DisplayType": "Flat",
       "DisplayDistance": 600,
-      "DisplayWidth": 510
+      "DisplayWidth": 510,
+      "MoveDpi": 400
     },
     "User": {
-      "ViewPortObserveDeg": 18,
+      "ViewPortMoveDistance": 67.8713,
       "ViewPortDeg": 40.88,
-      "ViewPortPoints": 1068.84
+      "ViewPortObserveDeg": 18
     },
-    "GamePreset": {
-      "ViewPortDeg": 40.88,
-      "ViewPortPoints": 1068.84
+    "Preset": {
+      "ViewPortMoveDistance": 67.8713,
+      "ViewPortDeg": 40.88
     }
   },
   "CalculatorActionOptions": {
