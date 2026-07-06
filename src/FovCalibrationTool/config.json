@@ -17,13 +17,13 @@
       "MoveDpi": 400
     },
     "User": {
-      "ViewPortMoveDistance": 67.8713,
-      "ViewPortDeg": 40.88,
-      "ViewPortObserveDeg": 18
-    },
-    "Preset": {
+      "ViewPortObserveDeg": 18,
       "ViewPortMoveDistance": 67.8713,
       "ViewPortDeg": 40.88
+    },
+    "Preset": {
+      "ViewPortMoveDistance": 74.8585,
+      "ViewPortDeg": 46.2152
     }
   },
   "CalculatorActionOptions": {

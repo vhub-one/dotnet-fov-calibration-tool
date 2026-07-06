@@ -63,7 +63,7 @@
             Console.SetCursorPosition(_x, _y + _yOffset);
             Console.Write("{0,30}: ", caption);
 
-            if (double.IsFinite(value))
+            if (Math.Abs(value) < 999_999_999_999d)
             {
                 Console.Write("{0,23:F4}", value);
             }

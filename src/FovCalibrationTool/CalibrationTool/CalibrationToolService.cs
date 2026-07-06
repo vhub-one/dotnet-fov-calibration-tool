@@ -250,24 +250,23 @@ namespace FovCalibrationTool.CalibrationTool
 
             DrawPane(60, 0, pane =>
             {
-                pane.DrawLine("# PRESET");
-                pane.DrawLine("view port move distance", state.User.ViewPortMoveDistance);
-                pane.DrawLine("view port angle", state.User.ViewPortDeg);
-                pane.DrawLine("view port width", stateStats.ViewPortWidth);
+                pane.DrawLine("# ADAPTED SENSITIVITY (FOV + VIEW PORT)");
+                pane.DrawLine("360 deg move distance", stateStats.MoveDistancePer360DegSensBased);
+                pane.DrawLine("fov move distance", stateStats.MoveDistancePerFovDegSensBased);
             });
 
-            DrawPane(60, 5, pane =>
+            DrawPane(60, 4, pane =>
             {
-                pane.DrawLine("# PRESET-BASED FOV");
+                pane.DrawLine("# ADAPTED FOV (SENSITIVITY + VIEW PORT)");
                 pane.DrawLine("fov move distance", stateStats.MoveDistancePerFovDegAngleBased);
                 pane.DrawLine("fov angle", stateStats.FovDegAngleBased);
             });
 
-            DrawPane(60, 9, pane =>
+            DrawPane(60, 8, pane =>
             {
-                pane.DrawLine("# PRESET-BASED SENSITIVITY");
-                pane.DrawLine("360 deg move distance", stateStats.MoveDistancePer360DegSensBased);
-                pane.DrawLine("fov move distance", stateStats.MoveDistancePerFovDegSensBased);
+                pane.DrawLine("# ADAPTED VIEW PORT (FOV + SENSITIVITY)");
+                pane.DrawLine("view port move distance", stateStats.MoveDistancePerViewPortDeg);
+                pane.DrawLine("view port angle", stateStats.ViewPortDeg);
             });
 
             DrawPane(0, 0, pane =>
@@ -280,7 +279,7 @@ namespace FovCalibrationTool.CalibrationTool
                     pane.HighlightNext();
                 }
 
-                pane.DrawHeader("# GAME 360 DEG", trackingStateSelected);
+                pane.DrawHeader("# SENSITIVITY", trackingStateSelected);
                 pane.DrawLine("360 deg move distance", stateStats.MoveDistancePer360Deg);
                 pane.DrawLine("1 deg move distance", stateStats.MoveDistancePer1Deg);
             });
@@ -295,17 +294,16 @@ namespace FovCalibrationTool.CalibrationTool
                     pane.HighlightNext();
                 }
 
-                pane.DrawHeader("# GAME FOV", trackingStateSelected);
+                pane.DrawHeader("# FOV", trackingStateSelected);
                 pane.DrawLine("fov move distance", stateStats.MoveDistancePerFovDeg);
                 pane.DrawLine("fov angle", stateStats.FovDeg);
-                pane.DrawLine("fov width", state.Environment.DisplayWidth);
             });
 
-            DrawPane(0, 9, pane =>
+            DrawPane(0, 8, pane =>
             {
-                pane.DrawLine("# GAME STATS");
-                pane.DrawLine("view port move distance", stateStats.MoveDistancePerViewPortDeg);
-                pane.DrawLine("view port angle", stateStats.ViewPortDeg);
+                pane.DrawLine("# VIEW PORT");
+                pane.DrawLine("view port move distance", state.User.ViewPortMoveDistance);
+                pane.DrawLine("view port angle", state.User.ViewPortDeg);
             });
 
             return ValueTask.CompletedTask;
